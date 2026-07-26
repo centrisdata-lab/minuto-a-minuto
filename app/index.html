@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minuto a Minuto Antioquia Eje Cafetero | CAMPUS FIMLM</title>
+  <meta name="description" content="Plantilla interactiva para que los profesores de FIMLM planifiquen sus clases minuto a minuto." />
+
+  <!-- Google Fonts: Poppins (títulos) + Inter (texto) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Icon font: Font Awesome (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <link rel="icon" type="image/png" href="assets/logo-campus.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ===================== SKIP LINK (accesibilidad) ===================== -->
+  <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="site-header" id="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="assets/logo-campus.png" alt="Logo Fundación Internacional María Luisa de Moreno - CAMPUS" class="brand-logo" />
+        <div class="brand-text">
+          <span class="brand-title">Minuto a Minuto Antioquia Eje Cafetero</span>
+          <span class="brand-subtitle">Planeador de clases · CAMPUS FIMLM</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="theme-toggle" title="Cambiar modo claro/oscuro" aria-label="Cambiar modo claro/oscuro">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- ===================== EDITOR (FORMULARIO) ===================== -->
+    <section class="editor" id="editor">
+      <div class="container">
+
+        <!-- Barra de estado de guardado y acciones -->
+        <div class="editor-toolbar">
+          <div class="save-status" id="save-status">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>Guardado</span>
+          </div>
+
+          <div class="editor-toolbar-actions">
+            <button type="button" class="btn btn-icon" id="btn-clear-form" title="Limpiar formulario">
+              <i class="fa-solid fa-eraser"></i><span class="btn-text-sm">Limpiar</span>
+            </button>
+            <button type="button" class="btn btn-icon" id="btn-duplicate-plan" title="Duplicar esta planeación">
+              <i class="fa-solid fa-copy"></i><span class="btn-text-sm">Duplicar</span>
+            </button>
+            <div class="dropdown" id="download-dropdown">
+              <button type="button" class="btn btn-primary" id="btn-download-toggle">
+                <i class="fa-solid fa-download"></i> Descargar plantilla <i class="fa-solid fa-chevron-down chev"></i>
+              </button>
+              <div class="dropdown-menu" id="download-menu">
+                <button type="button" class="dropdown-item" id="btn-download-xlsx">
+                  <i class="fa-solid fa-file-excel"></i>
+                  <div><strong>Excel (.xlsx)</strong><span>Formato editable original</span></div>
+                </button>
+                <button type="button" class="dropdown-item" id="btn-download-pdf">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  <div><strong>PDF</strong><span>Listo para imprimir o compartir</span></div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form id="plan-form" novalidate>
+
+          <!-- ===== Card 1: Preparación de clase (Minuto a Minuto) ===== -->
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon icon-orange"><span class="step-number">1</span></div>
+              <div>
+                <h3>Preparación de clase — Minuto a Minuto</h3>
+                <p>Agrega cada bloque de tu clase con su tiempo, actividad y responsable. La hora de inicio se calcula sola según la duración.</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm card-header-action" id="btn-add-block">
+                <i class="fa-solid fa-plus"></i> Agregar bloque
+              </button>
+            </div>
+
+            <div class="card-body">
+              <!-- Ejemplo colapsable: no editable, solo de referencia -->
+              <button type="button" class="btn-see-example" id="btn-toggle-example" aria-expanded="false" aria-controls="example-card">
+                <i class="fa-solid fa-star"></i>
+                <span>Ver ejemplo</span>
+                <i class="fa-solid fa-chevron-down chev"></i>
+              </button>
+
+              <div class="example-card" id="example-card" hidden>
+                <div class="example-note">
+                  <i class="fa-solid fa-lightbulb"></i>
+                  <span>Así se ve un Minuto a Minuto ya diligenciado (caso real "Grupo Sábado"). Tus bloques empiezan en blanco, más abajo.</span>
+                </div>
+                <div class="example-table-wrap">
+                  <table class="example-table">
+                    <thead>
+                      <tr>
+                        <th>#</th><th>Bloque</th><th>Duración</th><th>Hora inicio</th><th>Actividad</th><th>Recursos / Links</th><th>Responsable</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td><td>Bienvenida y reglas</td><td>2 min</td><td>9:00 am</td><td>Bienvenida y reglas de clase</td><td>Presentación</td><td>Flora</td>
+                      </tr>
+                      <tr>
+                        <td>2</td><td>Agenda de clase</td><td>2 min</td><td>9:02 am</td><td>Presentar la agenda de la sesión</td><td>Diapositivas 3 y 4</td><td>Lizeth</td>
+                      </tr>
+                      <tr>
+                        <td>3</td><td>Recordemos lo aprendido</td><td>10 min</td><td>9:04 am</td><td>¿Qué aprendimos en el módulo 3? Juego de parejas</td><td>Juego de parejas</td><td>Silvia</td>
+                      </tr>
+                      <tr>
+                        <td>4</td><td>Padlet</td><td>15 min</td><td>9:14 am</td><td>Actividad colaborativa en Padlet</td><td>Padlet</td><td>Profes</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="example-card-hint">Continúa con: Pausa activa, Concluyamos, Vamos a crear, Conclusiones finales, Invitación a participar...</p>
+              </div>
+
+              <div class="general-fields-row">
+                <div class="field field-inline" style="max-width:320px;">
+                  <label for="plan-course-name">Nombre del curso</label>
+                  <input type="text" id="plan-course-name" name="planCourseName" placeholder="Ej. Despertar Humano, Sistemas..." maxlength="100" />
+                </div>
+                <div class="field field-inline" style="max-width:220px;">
+                  <label for="plan-start-time">Hora de inicio de la clase</label>
+                  <input type="time" id="plan-start-time" name="planStartTime" value="09:00" />
+                </div>
+              </div>
+
+              <div class="blocks-list" id="blocks-list">
+                <!-- Bloques dinámicos -->
+              </div>
+
+              <button type="button" class="btn btn-dashed" id="btn-add-block-bottom">
+                <i class="fa-solid fa-plus"></i> Agregar otro bloque
+              </button>
+            </div>
+          </section>
+
+          <!-- ===== Card 2: Durante la clase ===== -->
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon icon-cyan"><span class="step-number">2</span></div>
+              <div>
+                <h3>Durante la clase</h3>
+                <p>Marca los aspectos técnicos y logísticos que debes verificar antes de iniciar y mientras dictas la clase.</p>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="example-note">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>Ejemplo: marca "Conectarse 15 minutos antes" y "Probar cámara y audio" como referencia de lo que debes revisar siempre.</span>
+              </div>
+
+              <div class="checklist" id="during-class-checklist">
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="connectEarly" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Conectarse mínimo 15 minutos antes de iniciar la clase</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="testCamera" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Probar cámara y audio (micrófono y parlantes)</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="framing" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Revisar encuadre: buena iluminación y postura frente a la cámara</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="background" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Verificar fondo (real o virtual) limpio y sin distractores</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="resourcesReady" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Tener listos y abiertos los recursos (diapositivas, links, Padlet, etc.)</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" class="js-during-check" data-key="internet" />
+                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
+                  <span class="checklist-text">Verificar conexión a internet estable</span>
+                </label>
+              </div>
+
+              <div class="field" style="margin-top: var(--space-4);">
+                <label for="during-class-notes">Otros aspectos a verificar</label>
+                <textarea id="during-class-notes" rows="3" placeholder="Ej. Recordar activar la sala de espera, tener a la mano el enlace de la lista de asistencia, avisar al profe de apoyo el horario exacto..." maxlength="400"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===== Card 3: Después de la clase (retroalimentación) ===== -->
+          <section class="card">
+            <div class="card-header">
+              <div class="card-header-icon icon-navy"><span class="step-number">3</span></div>
+              <div>
+                <h3>Después de la clase — Retroalimentación</h3>
+                <p>Responde estas preguntas al finalizar para identificar qué se debe mejorar en la próxima clase.</p>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="example-note">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>Ejemplo: "No se cumplió con el tiempo porque el bloque 7 y 8 se extendió 10 minutos más de lo planeado."</span>
+              </div>
+
+              <div class="feedback-question">
+                <div class="feedback-question-head">
+                  <label>¿Se cumplió con el tiempo planeado?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se cumplió con el tiempo planeado?">
+                    <button type="button" class="feedback-option" data-question="onTime" data-value="si">Sí</button>
+                    <button type="button" class="feedback-option" data-question="onTime" data-value="no">No</button>
+                  </div>
+                </div>
+                <textarea class="js-feedback-comment" data-question="onTime" rows="2" placeholder="Ej. No se cumplió con el tiempo porque el bloque 7 y 8 se extendió 10 minutos más de lo planeado." maxlength="400"></textarea>
+              </div>
+
+              <div class="feedback-question">
+                <div class="feedback-question-head">
+                  <label>¿Se aplicó el DUA (Diseño Universal para el Aprendizaje)?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se aplicó el DUA?">
+                    <button type="button" class="feedback-option" data-question="dua" data-value="si">Sí</button>
+                    <button type="button" class="feedback-option" data-question="dua" data-value="no">No</button>
+                  </div>
+                </div>
+                <textarea class="js-feedback-comment" data-question="dua" rows="2" placeholder="Ej. Se usaron Padlet y Mentimeter para dar varias formas de participar, pero faltó ofrecer una opción de audio para el material escrito." maxlength="400"></textarea>
+              </div>
+
+              <div class="feedback-question">
+                <div class="feedback-question-head">
+                  <label>¿Se abordaron todos los temas planeados?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se abordaron todos los temas planeados?">
+                    <button type="button" class="feedback-option" data-question="topics" data-value="si">Sí</button>
+                    <button type="button" class="feedback-option" data-question="topics" data-value="no">No</button>
+                  </div>
+                </div>
+                <textarea class="js-feedback-comment" data-question="topics" rows="2" placeholder="Ej. Sí, se alcanzaron a ver los 17 momentos de la agenda, incluida la conclusión final." maxlength="400"></textarea>
+              </div>
+
+              <div class="field" style="margin-top: var(--space-2);">
+                <label for="feedback-improve">Aspectos a mejorar para la próxima clase</label>
+                <textarea id="feedback-improve" rows="3" placeholder="Ej. Ajustar el tiempo del bloque de práctica y preparar una segunda dinámica de repaso más corta como alternativa." maxlength="500"></textarea>
+              </div>
+            </div>
+          </section>
+
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <img src="assets/logo-campus.png" alt="CAMPUS FIMLM" class="footer-logo" />
+      <p>© <span id="footer-year"></span> Fundación Internacional María Luisa de Moreno — CAMPUS. Herramienta interna para profesores.</p>
+    </div>
+  </footer>
+
+  <!-- ===================== TEMPLATE: Bloque (fila) ===================== -->
+  <template id="block-template">
+    <article class="block-card" data-block-id="">
+      <div class="block-card-drag" title="Arrastra para reordenar" aria-hidden="true">
+        <i class="fa-solid fa-grip-vertical"></i>
+      </div>
+
+      <div class="block-card-index">
+        <span class="block-number">1</span>
+      </div>
+
+      <div class="block-card-fields">
+        <div class="field">
+          <label>Bloque</label>
+          <input type="text" class="js-block-name" placeholder="Ej. Saludo, Tema 1, Cierre..." maxlength="60" />
+        </div>
+
+        <div class="field field-small">
+          <label>Duración</label>
+          <input type="time" class="js-block-duration" step="60" value="00:05" />
+        </div>
+
+        <div class="field field-small">
+          <label>Hora inicio</label>
+          <input type="text" class="js-block-start" readonly placeholder="--:--" />
+        </div>
+
+        <div class="field field-wide">
+          <label>Actividad</label>
+          <textarea class="js-block-activity" rows="2" placeholder="Describe la actividad a realizar..." maxlength="300"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Recursos / Links</label>
+          <input type="text" class="js-block-resources" placeholder="Ej. Diapositivas, Padlet, enlace..." maxlength="200" />
+        </div>
+
+        <div class="field field-small">
+          <label>Responsable</label>
+          <select class="js-block-responsible">
+            <option value="">Seleccionar</option>
+            <option value="Tutor">Tutor</option>
+            <option value="Profe 1">Profe 1</option>
+            <option value="Profe 2">Profe 2</option>
+            <option value="Tutores">Tutores</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <input type="text" class="js-block-responsible-other" placeholder="Escribe quién es el responsable" maxlength="60" hidden />
+        </div>
+      </div>
+
+      <div class="block-card-actions">
+        <button type="button" class="icon-btn js-block-duplicate" title="Duplicar bloque" aria-label="Duplicar bloque">
+          <i class="fa-solid fa-copy"></i>
+        </button>
+        <button type="button" class="icon-btn icon-btn-danger js-block-delete" title="Eliminar bloque" aria-label="Eliminar bloque">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </article>
+  </template>
+
+  <!-- ===================== TOASTS ===================== -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ===================== MODAL: Confirmación ===================== -->
+  <div class="modal-overlay" id="confirm-modal" hidden>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div class="modal-icon" id="confirm-modal-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="confirm-modal-title">¿Estás seguro?</h3>
+      <p id="confirm-modal-message">Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="confirm-modal-cancel">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirm-modal-accept">Sí, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LIBRERÍAS EXTERNAS (CDN) ===================== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- ===================== MÓDULOS DE LA APLICACIÓN ===================== -->
+  <script src="js/storage.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/blocks.js"></script>
+  <script src="js/planForm.js"></script>
+  <script src="js/exporters.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
