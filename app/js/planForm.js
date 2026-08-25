@@ -52,9 +52,21 @@ const PlanForm = (() => {
     loadOrCreate();
   }
 
+  /**
+   * Bloques con los que arranca toda planeación nueva (y "Limpiar formulario").
+   * Nombre y duración vienen precargados como punto de partida para una clase
+   * de 90 minutos; el profesor puede editarlos, borrarlos o agregar más, y
+   * solo necesita completar Recursos/Links y Responsable en cada uno.
+   */
   function defaultBlocks() {
     return [
-      { name: '', duration: '00:02', activity: '', resources: '', responsible: '' },
+      { name: 'Saludo y bienvenida', duration: '00:02', activity: '', resources: '', responsible: '' },
+      { name: 'Agenda de clase', duration: '00:01', activity: '', resources: '', responsible: '' },
+      { name: 'Recordemos lo aprendido', duration: '00:05', activity: '', resources: '', responsible: '' },
+      { name: 'Desarrollo del tema', duration: '00:40', activity: '', resources: '', responsible: '' },
+      { name: 'Práctica', duration: '00:25', activity: '', resources: '', responsible: '' },
+      { name: 'Pausa activa', duration: '00:07', activity: '', resources: '', responsible: '' },
+      { name: 'Preguntas e inquietudes', duration: '00:10', activity: '', resources: '', responsible: '' },
     ];
   }
 
