@@ -70,6 +70,17 @@ const PlanForm = (() => {
     ];
   }
 
+  /**
+   * true si ningún bloque tiene contenido real diligenciado por el profesor
+   * (actividad, recursos o responsable). Un plan guardado antes de que
+   * existieran los 7 bloques predeterminados cae aquí, así que se puede
+   * migrar a la plantilla nueva sin perder ningún trabajo real.
+   */
+  function hasNoRealBlockContent(blocks) {
+    if (!blocks || blocks.length === 0) return true;
+    return blocks.every((b) => !b.activity?.trim() && !b.resources?.trim() && !b.responsible?.trim());
+  }
+
   /* ---------------------------------------------------------------------
      Sección "Durante la clase" (checklist)
      --------------------------------------------------------------------- */
@@ -183,7 +194,10 @@ const PlanForm = (() => {
       planCreatedAt = plan.createdAt || null;
       els.courseName.value = plan.courseName || '';
       els.startTime.value = plan.startTime || '09:00';
-      BlocksManager.loadBlocks(plan.blocks && plan.blocks.length ? plan.blocks : defaultBlocks());
+      // Migra planes guardados antes de que existiera la plantilla de 7 bloques:
+      // si nadie diligenció nada real todavía, se reemplaza sin perder trabajo.
+      const blocksToLoad = hasNoRealBlockContent(plan.blocks) ? defaultBlocks() : plan.blocks;
+      BlocksManager.loadBlocks(blocksToLoad);
       loadDuringClassData(plan.duringClass);
       loadFeedbackData(plan.feedback);
     } else {
