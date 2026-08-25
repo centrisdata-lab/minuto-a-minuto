@@ -291,15 +291,44 @@
     </div>
   </footer>
 
-  <!-- ===================== TEMPLATE: Bloque (fila) ===================== -->
+  <!-- ===================== TEMPLATE: Bloque contenedor (colapsable) ===================== -->
   <template id="block-template">
-    <article class="block-card" data-block-id="">
-      <div class="block-card-drag" title="Arrastra para reordenar" aria-hidden="true">
-        <i class="fa-solid fa-grip-vertical"></i>
+    <article class="block-container" data-block-id="">
+      <div class="block-container-header">
+        <div class="block-container-drag" title="Arrastra para reordenar el bloque completo" aria-hidden="true">
+          <i class="fa-solid fa-grip-vertical"></i>
+        </div>
+
+        <button type="button" class="block-container-toggle js-block-toggle" aria-expanded="true" aria-controls="">
+          <span class="block-number">1</span>
+          <span class="block-container-title">Bloque 1</span>
+          <span class="block-container-duration js-block-container-duration">0 min</span>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </button>
+
+        <div class="block-container-actions">
+          <button type="button" class="icon-btn js-block-duplicate" title="Duplicar bloque completo" aria-label="Duplicar bloque completo">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+          <button type="button" class="icon-btn icon-btn-danger js-block-delete" title="Eliminar bloque completo" aria-label="Eliminar bloque completo">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       </div>
 
-      <div class="block-card-index">
-        <span class="block-number">1</span>
+      <div class="sub-blocks-list js-sub-blocks-list" id=""></div>
+
+      <button type="button" class="btn btn-dashed btn-dashed-sm js-add-sub-block">
+        <i class="fa-solid fa-plus"></i> Agregar sub-bloque
+      </button>
+    </article>
+  </template>
+
+  <!-- ===================== TEMPLATE: Sub-bloque (fila dentro de un Bloque) ===================== -->
+  <template id="sub-block-template">
+    <article class="sub-block-card" data-sub-block-id="">
+      <div class="block-card-drag" title="Arrastra para reordenar" aria-hidden="true">
+        <i class="fa-solid fa-grip-vertical"></i>
       </div>
 
       <div class="block-card-fields">
@@ -349,10 +378,10 @@
       </div>
 
       <div class="block-card-actions">
-        <button type="button" class="icon-btn js-block-duplicate" title="Duplicar bloque" aria-label="Duplicar bloque">
+        <button type="button" class="icon-btn js-sub-block-duplicate" title="Duplicar sub-bloque" aria-label="Duplicar sub-bloque">
           <i class="fa-solid fa-copy"></i>
         </button>
-        <button type="button" class="icon-btn icon-btn-danger js-block-delete" title="Eliminar bloque" aria-label="Eliminar bloque">
+        <button type="button" class="icon-btn icon-btn-danger js-sub-block-delete" title="Eliminar sub-bloque" aria-label="Eliminar sub-bloque">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>

@@ -14,6 +14,11 @@ const Exporters = (() => {
     return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
   }
 
+  /** Aplana los bloques contenedores (con sub-bloques anidados) a la lista simple de filas que ya generan los exportadores. */
+  function flattenBlocks(blocks) {
+    return (blocks || []).flatMap((container) => container.subBlocks || []);
+  }
+
   /** Construye un nombre de archivo seguro incluyendo el nombre del curso si existe. */
   function buildFileName(courseName, extension) {
     const base = 'minuto_a_minuto';
@@ -42,7 +47,7 @@ const Exporters = (() => {
       rows.push(['Hora de inicio de la clase:', plan.startTime || '']);
       rows.push([]);
       rows.push(['(Diapositiva)', '(Bloque)', '(Duración)', '(Hora Inicio)', '(Actividad)', '(Recursos/Links)', '(Responsable)']);
-      (plan.blocks || []).forEach((b, i) => {
+      flattenBlocks(plan.blocks).forEach((b, i) => {
         rows.push([i + 1, b.name || '', b.duration || '', b.start || '', b.activity || '', b.resources || '', b.responsible || '']);
       });
 
@@ -105,7 +110,7 @@ const Exporters = (() => {
         : `Hora de inicio de la clase: ${plan.startTime || '-'}`;
       doc.text(infoText, 30, 66);
 
-      const body = (plan.blocks || []).map((b, i) => [
+      const body = flattenBlocks(plan.blocks).map((b, i) => [
         i + 1,
         b.name || '',
         b.duration ? Utils.durationLabel(b.duration) : '',

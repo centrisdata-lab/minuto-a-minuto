@@ -1,32 +1,54 @@
 /**
  * blocks.js
- * Maneja la lista dinámica de "bloques" del Minuto a Minuto: crear, eliminar,
- * duplicar, reordenar (drag & drop) y recalcular las horas de inicio en cascada
- * a partir de la hora de inicio general y la duración de cada bloque.
+ * Maneja la jerarquía de dos niveles del Minuto a Minuto: "bloques"
+ * contenedores colapsables (numerados "Bloque 1", "Bloque 2"...), cada uno
+ * con una lista de "sub-bloques" (nombre, duración, actividad, recursos,
+ * responsable). Crear, eliminar, duplicar y reordenar funcionan en ambos
+ * niveles; la hora de inicio se calcula en cascada recorriendo todos los
+ * sub-bloques de todos los bloques en orden de documento.
  */
 
 const BlocksManager = (() => {
   let listEl = null;
   let onChangeCallback = () => {};
-  let dragSrcEl = null;
+  let dragSrcContainerEl = null;
+  let dragSrcSubEl = null;
   let nextBlockSeq = 0;
 
   function init(containerEl, onChange) {
     listEl = containerEl;
     onChangeCallback = onChange || (() => {});
+    bindContainerDragOver();
   }
 
   /** Opciones fijas del select de responsable, leídas del propio <template> para no duplicar la lista a mano. */
   function getFixedResponsibleOptions() {
-    const tpl = document.getElementById('block-template');
+    const tpl = document.getElementById('sub-block-template');
     const select = tpl.content.querySelector('.js-block-responsible');
     return [...select.options].map((opt) => opt.value);
   }
 
-  function createBlockElement(data = {}) {
-    const tpl = document.getElementById('block-template');
+  /** Encuentra el elemento después del cual debe insertarse el nodo arrastrado, según la posición Y del mouse. */
+  function getDragAfterElement(container, y, selector) {
+    const els = [...container.querySelectorAll(`${selector}:not(.dragging)`)];
+    return els.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      }
+      return closest;
+    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+  }
+
+  /* ---------------------------------------------------------------------
+     Sub-bloques (fila con nombre, duración, actividad, recursos, responsable)
+     --------------------------------------------------------------------- */
+
+  function createSubBlockElement(data = {}) {
+    const tpl = document.getElementById('sub-block-template');
     const node = tpl.content.firstElementChild.cloneNode(true);
-    node.dataset.blockId = data.id || `block-${Date.now()}-${nextBlockSeq++}`;
+    node.dataset.subBlockId = data.id || `sub-${Date.now()}-${nextBlockSeq++}`;
 
     node.querySelector('.js-block-name').value = data.name || '';
     node.querySelector('.js-block-duration').value = data.duration || '00:05';
@@ -56,8 +78,7 @@ const BlocksManager = (() => {
       }
     });
 
-    // Eventos de edición -> notificar cambios; solo duración y hora de inicio
-    // general afectan el cálculo de horas, así que solo esos recalculan.
+    // Eventos de edición -> notificar cambios; solo duración afecta el cálculo de horas.
     node.querySelectorAll('input, textarea, select').forEach((el) => {
       el.addEventListener('input', () => {
         onChangeCallback();
@@ -67,54 +88,171 @@ const BlocksManager = (() => {
       recalculateStartTimes();
     });
 
-    node.querySelector('.js-block-delete').addEventListener('click', () => removeBlock(node));
-    node.querySelector('.js-block-duplicate').addEventListener('click', () => duplicateBlock(node));
+    node.querySelector('.js-sub-block-delete').addEventListener('click', () => removeSubBlock(node));
+    node.querySelector('.js-sub-block-duplicate').addEventListener('click', () => duplicateSubBlock(node));
 
-    // Drag & drop para reordenar
+    // Drag & drop, confinado a la lista de sub-bloques del contenedor padre.
     node.setAttribute('draggable', 'true');
     node.addEventListener('dragstart', (e) => {
-      dragSrcEl = node;
+      e.stopPropagation(); // no debe iniciar también el drag del bloque contenedor
+      dragSrcSubEl = node;
       node.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', node.dataset.subBlockId);
     });
-    node.addEventListener('dragend', () => {
+    node.addEventListener('dragend', (e) => {
+      e.stopPropagation();
       node.classList.remove('dragging');
-      dragSrcEl = null;
+      dragSrcSubEl = null;
       renumberBlocks();
       recalculateStartTimes();
       onChangeCallback();
     });
     node.addEventListener('dragover', (e) => {
-      if (!dragSrcEl) return;
+      if (!dragSrcSubEl) return;
+      const subList = node.closest('.js-sub-blocks-list');
+      if (!subList || !subList.contains(dragSrcSubEl)) return; // nunca mezclar sub-bloques entre bloques distintos
       e.preventDefault();
-      const after = getDragAfterElement(listEl, e.clientY);
-      if (after == null) listEl.appendChild(dragSrcEl);
-      else listEl.insertBefore(dragSrcEl, after);
+      e.stopPropagation();
+      const after = getDragAfterElement(subList, e.clientY, '.sub-block-card');
+      if (after == null) subList.appendChild(dragSrcSubEl);
+      else subList.insertBefore(dragSrcSubEl, after);
     });
 
     return node;
   }
 
-  function getDragAfterElement(container, y) {
-    const els = [...container.querySelectorAll('.block-card:not(.dragging)')];
-    return els.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
-      if (offset < 0 && offset > closest.offset) {
-        return { offset, element: child };
+  function addSubBlock(containerNode, data = {}, options = {}) {
+    const subList = containerNode.querySelector('.js-sub-blocks-list');
+    const node = createSubBlockElement(data);
+    subList.appendChild(node);
+    recalculateStartTimes();
+    if (!options.silent) onChangeCallback();
+    if (options.focus) {
+      node.querySelector('.js-block-name').focus();
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return node;
+  }
+
+  function removeSubBlock(node) {
+    const subList = node.closest('.js-sub-blocks-list');
+    if (subList.children.length <= 1) {
+      Toast.warning('Debe haber al menos un sub-bloque en este bloque.');
+      return;
+    }
+    if (dragSrcSubEl === node) dragSrcSubEl = null;
+    node.remove();
+    recalculateStartTimes();
+    onChangeCallback();
+  }
+
+  function duplicateSubBlock(node) {
+    const data = extractSubBlockData(node);
+    data.id = null;
+    const clone = createSubBlockElement(data);
+    node.after(clone);
+    recalculateStartTimes();
+    onChangeCallback();
+  }
+
+  function extractSubBlockData(node) {
+    const responsibleSelect = node.querySelector('.js-block-responsible').value;
+    const responsibleOther = node.querySelector('.js-block-responsible-other').value.trim();
+    const responsible = responsibleSelect === 'Otro' && responsibleOther ? responsibleOther : responsibleSelect;
+
+    return {
+      name: node.querySelector('.js-block-name').value,
+      duration: node.querySelector('.js-block-duration').value,
+      start: node.querySelector('.js-block-start').value,
+      activity: node.querySelector('.js-block-activity').value,
+      resources: node.querySelector('.js-block-resources').value,
+      responsible,
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     Bloques contenedores (colapsables, agrupan sub-bloques)
+     --------------------------------------------------------------------- */
+
+  function createBlockContainer(data = {}) {
+    const tpl = document.getElementById('block-template');
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    const blockId = data.id || `block-${Date.now()}-${nextBlockSeq++}`;
+    node.dataset.blockId = blockId;
+
+    const subList = node.querySelector('.js-sub-blocks-list');
+    subList.id = `sub-list-${blockId}`;
+    const toggle = node.querySelector('.js-block-toggle');
+    toggle.setAttribute('aria-controls', subList.id);
+
+    const subBlocksData = (data.subBlocks && data.subBlocks.length) ? data.subBlocks : [{}];
+    subBlocksData.forEach((sb) => subList.appendChild(createSubBlockElement(sb)));
+
+    toggle.addEventListener('click', () => {
+      const isOpen = subList.hidden;
+      subList.hidden = !isOpen;
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    node.querySelector('.js-block-delete').addEventListener('click', () => removeBlock(node));
+    node.querySelector('.js-block-duplicate').addEventListener('click', () => duplicateBlock(node));
+    node.querySelector('.js-add-sub-block').addEventListener('click', () => addSubBlock(node, {}, { focus: true }));
+
+    // Drag & drop de bloques completos: solo se activa arrastrando desde el
+    // handle. En "dragstart" el navegador reporta como e.target el propio
+    // elemento draggable (node), no el hijo bajo el cursor, así que hay que
+    // rastrear el mousedown sobre el handle por separado.
+    let dragStartedFromHandle = false;
+    node.querySelector('.block-container-drag').addEventListener('mousedown', () => {
+      dragStartedFromHandle = true;
+    });
+    node.setAttribute('draggable', 'true');
+    node.addEventListener('dragstart', (e) => {
+      if (!dragStartedFromHandle) {
+        e.preventDefault();
+        return;
       }
-      return closest;
-    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+      dragSrcContainerEl = node;
+      node.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', blockId);
+    });
+    node.addEventListener('dragend', () => {
+      node.classList.remove('dragging');
+      dragSrcContainerEl = null;
+      dragStartedFromHandle = false;
+      renumberBlocks();
+      recalculateStartTimes();
+      onChangeCallback();
+    });
+
+    return node;
+  }
+
+  // "dragover" de bloques contenedores se maneja por delegación en `listEl`
+  // (una sola vez, en init) en vez de un listener por instancia: así el
+  // evento se resuelve aunque el cursor pase sobre sub-bloques u otros
+  // elementos anidados con su propio "draggable" en el camino, que de otro
+  // modo pueden interceptar el evento antes de que llegue al contenedor.
+  function bindContainerDragOver() {
+    listEl.addEventListener('dragover', (e) => {
+      if (!dragSrcContainerEl) return;
+      e.preventDefault();
+      const after = getDragAfterElement(listEl, e.clientY, '.block-container');
+      if (after == null) listEl.appendChild(dragSrcContainerEl);
+      else listEl.insertBefore(dragSrcContainerEl, after);
+    });
   }
 
   function addBlock(data = {}, options = {}) {
-    const node = createBlockElement(data);
+    const node = createBlockContainer(data);
     listEl.appendChild(node);
     renumberBlocks();
     recalculateStartTimes();
     if (!options.silent) onChangeCallback();
     if (options.focus) {
-      node.querySelector('.js-block-name').focus();
+      node.querySelector('.sub-block-card .js-block-name')?.focus();
       node.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return node;
@@ -125,7 +263,8 @@ const BlocksManager = (() => {
       Toast.warning('Debe haber al menos un bloque en la planeación.');
       return;
     }
-    if (dragSrcEl === node) dragSrcEl = null;
+    if (dragSrcContainerEl === node) dragSrcContainerEl = null;
+    if (dragSrcSubEl && node.contains(dragSrcSubEl)) dragSrcSubEl = null;
     node.remove();
     renumberBlocks();
     recalculateStartTimes();
@@ -133,37 +272,52 @@ const BlocksManager = (() => {
   }
 
   function duplicateBlock(node) {
-    const data = extractBlockData(node);
+    const data = extractContainerData(node);
     data.id = null;
-    const clone = createBlockElement(data);
+    data.subBlocks.forEach((sb) => { sb.id = null; });
+    const clone = createBlockContainer(data);
     node.after(clone);
     renumberBlocks();
     recalculateStartTimes();
     onChangeCallback();
   }
 
+  /** Numera cada bloque contenedor ("Bloque 1", "Bloque 2"...) según su posición en el documento. */
   function renumberBlocks() {
-    [...listEl.querySelectorAll('.block-card')].forEach((node, i) => {
+    [...listEl.querySelectorAll('.block-container')].forEach((node, i) => {
       node.querySelector('.block-number').textContent = String(i + 1);
+      node.querySelector('.block-container-title').textContent = `Bloque ${i + 1}`;
     });
   }
 
-  /** Recalcula la hora de inicio de cada bloque en cascada, sumando duraciones. */
+  /**
+   * Recalcula la hora de inicio de cada sub-bloque en cascada: el cursor de
+   * minutos avanza recorriendo todos los sub-bloques de todos los bloques
+   * contenedores, en orden de documento (bloque 1 → sus sub-bloques → bloque
+   * 2 → ...). También actualiza la duración calculada de cada contenedor y
+   * el total general de la clase.
+   */
   function recalculateStartTimes() {
     const startInput = document.getElementById('plan-start-time');
     const baseTime = startInput?.value || '08:00';
     let cursor = Utils.timeToMinutes(baseTime);
-
-    const nodes = [...listEl.querySelectorAll('.block-card')];
     let totalMinutes = 0;
 
-    nodes.forEach((node) => {
-      const startField = node.querySelector('.js-block-start');
-      startField.value = Utils.minutesToTime(cursor);
-      const duration = node.querySelector('.js-block-duration').value || '00:00';
-      const durMinutes = Utils.timeToMinutes(duration);
-      cursor += durMinutes;
-      totalMinutes += durMinutes;
+    const containers = [...listEl.querySelectorAll('.block-container')];
+    containers.forEach((container) => {
+      const subNodes = [...container.querySelectorAll('.sub-block-card')];
+      let containerMinutes = 0;
+
+      subNodes.forEach((sub) => {
+        sub.querySelector('.js-block-start').value = Utils.minutesToTime(cursor);
+        const durMinutes = Utils.timeToMinutes(sub.querySelector('.js-block-duration').value || '00:00');
+        cursor += durMinutes;
+        containerMinutes += durMinutes;
+      });
+
+      totalMinutes += containerMinutes;
+      const durationLabel = container.querySelector('.js-block-container-duration');
+      if (durationLabel) durationLabel.textContent = formatTotalDuration(containerMinutes) || '0 min';
     });
 
     const totalField = document.getElementById('plan-duration-total');
@@ -179,29 +333,27 @@ const BlocksManager = (() => {
     return `${h} h ${m} min`;
   }
 
-  function extractBlockData(node) {
-    const responsibleSelect = node.querySelector('.js-block-responsible').value;
-    const responsibleOther = node.querySelector('.js-block-responsible-other').value.trim();
-    const responsible = responsibleSelect === 'Otro' && responsibleOther ? responsibleOther : responsibleSelect;
-
+  function extractContainerData(node) {
     return {
-      name: node.querySelector('.js-block-name').value,
-      duration: node.querySelector('.js-block-duration').value,
-      start: node.querySelector('.js-block-start').value,
-      activity: node.querySelector('.js-block-activity').value,
-      resources: node.querySelector('.js-block-resources').value,
-      responsible,
+      id: node.dataset.blockId,
+      subBlocks: [...node.querySelectorAll('.sub-block-card')].map(extractSubBlockData),
     };
   }
 
   function getAllBlocksData() {
-    return [...listEl.querySelectorAll('.block-card')].map(extractBlockData);
+    return [...listEl.querySelectorAll('.block-container')].map(extractContainerData);
+  }
+
+  /** Lista aplanada de todos los sub-bloques de todos los bloques, en orden — para exportadores y cálculo de progreso. */
+  function getFlatSubBlocksData() {
+    return getAllBlocksData().flatMap((c) => c.subBlocks);
   }
 
   /** Vacía la lista. De uso interno (ver loadBlocks); no exportar sin repoblar de inmediato,
    *  ya que la app espera siempre al menos un bloque presente. */
   function clear() {
-    dragSrcEl = null;
+    dragSrcContainerEl = null;
+    dragSrcSubEl = null;
     listEl.innerHTML = '';
   }
 
@@ -220,6 +372,7 @@ const BlocksManager = (() => {
     addBlock,
     loadBlocks,
     getAllBlocksData,
+    getFlatSubBlocksData,
     recalculateStartTimes,
   };
 })();

@@ -54,12 +54,13 @@ const PlanForm = (() => {
 
   /**
    * Bloques con los que arranca toda planeación nueva (y "Limpiar formulario").
-   * Nombre y duración vienen precargados como punto de partida para una clase
-   * de 90 minutos; el profesor puede editarlos, borrarlos o agregar más, y
-   * solo necesita completar Recursos/Links y Responsable en cada uno.
+   * Cada uno de los 7 bloques estándar de una clase de 90 minutos se envuelve
+   * en su propio bloque contenedor con un solo sub-bloque adentro; el profesor
+   * puede editar nombre/duración, agregar más sub-bloques, borrar o reordenar,
+   * y solo necesita completar Recursos/Links y Responsable en cada uno.
    */
   function defaultBlocks() {
-    return [
+    const flat = [
       { name: 'Saludo y bienvenida', duration: '00:02', activity: '', resources: '', responsible: '' },
       { name: 'Agenda de clase', duration: '00:01', activity: '', resources: '', responsible: '' },
       { name: 'Recordemos lo aprendido', duration: '00:05', activity: '', resources: '', responsible: '' },
@@ -68,17 +69,38 @@ const PlanForm = (() => {
       { name: 'Pausa activa', duration: '00:07', activity: '', resources: '', responsible: '' },
       { name: 'Preguntas e inquietudes', duration: '00:10', activity: '', resources: '', responsible: '' },
     ];
+    return flat.map((subBlock) => ({ subBlocks: [subBlock] }));
   }
 
   /**
-   * true si ningún bloque tiene contenido real diligenciado por el profesor
-   * (actividad, recursos o responsable). Un plan guardado antes de que
-   * existieran los 7 bloques predeterminados cae aquí, así que se puede
+   * true si ningún sub-bloque tiene contenido real diligenciado por el
+   * profesor (actividad, recursos o responsable). Un plan guardado antes de
+   * que existiera la plantilla de 7 bloques cae aquí, así que se puede
    * migrar a la plantilla nueva sin perder ningún trabajo real.
    */
-  function hasNoRealBlockContent(blocks) {
-    if (!blocks || blocks.length === 0) return true;
-    return blocks.every((b) => !b.activity?.trim() && !b.resources?.trim() && !b.responsible?.trim());
+  function hasNoRealBlockContent(subBlocks) {
+    if (!subBlocks || subBlocks.length === 0) return true;
+    return subBlocks.every((b) => !b.activity?.trim() && !b.resources?.trim() && !b.responsible?.trim());
+  }
+
+  /** true si `blocks` viene en la forma plana antigua (bloques-hoja, sin `subBlocks`), previa a la jerarquía de dos niveles. */
+  function isOldFlatShape(blocks) {
+    return Array.isArray(blocks) && blocks.length > 0 && !Array.isArray(blocks[0].subBlocks);
+  }
+
+  /** Envuelve cada bloque plano antiguo en su propio bloque contenedor con 1 sub-bloque, preservando todo su contenido. */
+  function migrateFlatBlocksToContainers(flatBlocks) {
+    return flatBlocks.map((b) => ({
+      subBlocks: [{
+        name: b.name, duration: b.duration, start: b.start,
+        activity: b.activity, resources: b.resources, responsible: b.responsible,
+      }],
+    }));
+  }
+
+  /** Aplana bloques contenedores (forma nueva) a la lista de sus sub-bloques, en orden. */
+  function getFlatFromContainers(containers) {
+    return (containers || []).flatMap((c) => c.subBlocks || []);
   }
 
   /* ---------------------------------------------------------------------
@@ -194,9 +216,19 @@ const PlanForm = (() => {
       planCreatedAt = plan.createdAt || null;
       els.courseName.value = plan.courseName || '';
       els.startTime.value = plan.startTime || '09:00';
-      // Migra planes guardados antes de que existiera la plantilla de 7 bloques:
-      // si nadie diligenció nada real todavía, se reemplaza sin perder trabajo.
-      const blocksToLoad = hasNoRealBlockContent(plan.blocks) ? defaultBlocks() : plan.blocks;
+
+      // Migra planes guardados en la forma plana antigua (antes de la
+      // jerarquía de dos niveles) a bloques contenedores con sub-bloques.
+      let blocksToLoad = plan.blocks;
+      if (isOldFlatShape(blocksToLoad)) {
+        blocksToLoad = migrateFlatBlocksToContainers(blocksToLoad);
+      }
+      // Si nadie diligenció nada real todavía, se reemplaza por la plantilla
+      // estándar de 7 bloques sin perder ningún trabajo real.
+      if (hasNoRealBlockContent(getFlatFromContainers(blocksToLoad))) {
+        blocksToLoad = defaultBlocks();
+      }
+
       BlocksManager.loadBlocks(blocksToLoad);
       loadDuringClassData(plan.duringClass);
       loadFeedbackData(plan.feedback);
@@ -208,6 +240,7 @@ const PlanForm = (() => {
 
   function buildPlanObject() {
     const blocks = BlocksManager.getAllBlocksData();
+    const flatSubBlocks = BlocksManager.getFlatSubBlocksData();
     const duringClass = getDuringClassData();
     const feedback = getFeedbackData();
     return {
@@ -218,16 +251,16 @@ const PlanForm = (() => {
       blocks,
       duringClass,
       feedback,
-      progress: calculateProgress(blocks, duringClass, feedback),
+      progress: calculateProgress(flatSubBlocks, duringClass, feedback),
     };
   }
 
   /** Calcula el % de diligenciamiento combinando las 3 secciones (uso interno, no se muestra en la UI). */
-  function calculateProgress(blocks, duringClass, feedback) {
+  function calculateProgress(subBlocks, duringClass, feedback) {
     let total = 0;
     let filled = 0;
 
-    blocks.forEach((b) => {
+    subBlocks.forEach((b) => {
       ['name', 'duration', 'activity', 'resources', 'responsible'].forEach((key) => {
         total++;
         if (b[key] && String(b[key]).trim()) filled++;
