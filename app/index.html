@@ -142,9 +142,16 @@
                   <label for="plan-start-time">Hora de inicio de la clase</label>
                   <input type="time" id="plan-start-time" name="planStartTime" value="09:00" />
                 </div>
-                <div class="field field-inline" style="max-width:180px;">
-                  <label for="plan-duration-total">Duración total</label>
-                  <input type="text" id="plan-duration-total" readonly placeholder="Se calcula sola" />
+                <div class="field field-inline" style="max-width:200px;">
+                  <label for="plan-duration-total">
+                    Duración total de la clase
+                    <i class="fa-solid fa-lock field-label-icon" title="Este campo no se edita: suma automáticamente la duración de todos los bloques"></i>
+                  </label>
+                  <div class="readonly-field-wrap">
+                    <i class="fa-solid fa-calculator readonly-field-icon"></i>
+                    <input type="text" id="plan-duration-total" readonly placeholder="Se calcula sola" />
+                  </div>
+                  <span class="field-hint">Suma automática de todos los bloques</span>
                 </div>
               </div>
 

@@ -485,6 +485,31 @@ img { max-width: 100%; display: block; }
 
 .field textarea { resize: vertical; min-height: 60px; }
 
+/* Ícono junto a la etiqueta de un campo de solo lectura, para aclarar que
+   no se edita a mano (ej. "Duración total", calculada automáticamente). */
+.field-label-icon {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin-left: 4px;
+}
+
+.readonly-field-wrap { position: relative; }
+.readonly-field-wrap .readonly-field-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+.readonly-field-wrap input { padding-left: 32px; }
+
+.field-hint {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
 .general-fields-row {
   display: flex;
   gap: var(--space-4);
