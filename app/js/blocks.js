@@ -9,19 +9,24 @@ const BlocksManager = (() => {
   let listEl = null;
   let onChangeCallback = () => {};
   let dragSrcEl = null;
+  let nextBlockSeq = 0;
 
   function init(containerEl, onChange) {
     listEl = containerEl;
     onChangeCallback = onChange || (() => {});
   }
 
-  const FIXED_RESPONSIBLE_OPTIONS = ['', 'Tutor', 'Profe 1', 'Profe 2', 'Tutores', 'Otro'];
+  /** Opciones fijas del select de responsable, leídas del propio <template> para no duplicar la lista a mano. */
+  function getFixedResponsibleOptions() {
+    const tpl = document.getElementById('block-template');
+    const select = tpl.content.querySelector('.js-block-responsible');
+    return [...select.options].map((opt) => opt.value);
+  }
 
   function createBlockElement(data = {}) {
     const tpl = document.getElementById('block-template');
     const node = tpl.content.firstElementChild.cloneNode(true);
-    const blockId = data.id || Utils.escapeHtml(String(Date.now() + Math.random()));
-    node.dataset.blockId = blockId;
+    node.dataset.blockId = data.id || `block-${Date.now()}-${nextBlockSeq++}`;
 
     node.querySelector('.js-block-name').value = data.name || '';
     node.querySelector('.js-block-duration').value = data.duration || '00:05';
@@ -32,7 +37,7 @@ const BlocksManager = (() => {
     const responsibleSelect = node.querySelector('.js-block-responsible');
     const responsibleOther = node.querySelector('.js-block-responsible-other');
     const savedResponsible = data.responsible || '';
-    if (savedResponsible && !FIXED_RESPONSIBLE_OPTIONS.includes(savedResponsible)) {
+    if (savedResponsible && !getFixedResponsibleOptions().includes(savedResponsible)) {
       // El valor guardado es texto libre (se escribió un nombre propio en "Otro")
       responsibleSelect.value = 'Otro';
       responsibleOther.value = savedResponsible;
@@ -51,12 +56,15 @@ const BlocksManager = (() => {
       }
     });
 
-    // Eventos de edición -> recalcular y notificar cambios
+    // Eventos de edición -> notificar cambios; solo duración y hora de inicio
+    // general afectan el cálculo de horas, así que solo esos recalculan.
     node.querySelectorAll('input, textarea, select').forEach((el) => {
       el.addEventListener('input', () => {
-        recalculateStartTimes();
         onChangeCallback();
       });
+    });
+    node.querySelector('.js-block-duration').addEventListener('input', () => {
+      recalculateStartTimes();
     });
 
     node.querySelector('.js-block-delete').addEventListener('click', () => removeBlock(node));
@@ -71,14 +79,15 @@ const BlocksManager = (() => {
     });
     node.addEventListener('dragend', () => {
       node.classList.remove('dragging');
+      dragSrcEl = null;
       renumberBlocks();
       recalculateStartTimes();
       onChangeCallback();
     });
     node.addEventListener('dragover', (e) => {
+      if (!dragSrcEl) return;
       e.preventDefault();
       const after = getDragAfterElement(listEl, e.clientY);
-      if (!dragSrcEl) return;
       if (after == null) listEl.appendChild(dragSrcEl);
       else listEl.insertBefore(dragSrcEl, after);
     });
@@ -116,6 +125,7 @@ const BlocksManager = (() => {
       Toast.warning('Debe haber al menos un bloque en la planeación.');
       return;
     }
+    if (dragSrcEl === node) dragSrcEl = null;
     node.remove();
     renumberBlocks();
     recalculateStartTimes();
@@ -139,9 +149,9 @@ const BlocksManager = (() => {
   }
 
   /** Recalcula la hora de inicio de cada bloque en cascada, sumando duraciones. */
-  function recalculateStartTimes(startTimeOverride) {
+  function recalculateStartTimes() {
     const startInput = document.getElementById('plan-start-time');
-    const baseTime = startTimeOverride || startInput?.value || '08:00';
+    const baseTime = startInput?.value || '08:00';
     let cursor = Utils.timeToMinutes(baseTime);
 
     const nodes = [...listEl.querySelectorAll('.block-card')];
@@ -188,7 +198,10 @@ const BlocksManager = (() => {
     return [...listEl.querySelectorAll('.block-card')].map(extractBlockData);
   }
 
+  /** Vacía la lista. De uso interno (ver loadBlocks); no exportar sin repoblar de inmediato,
+   *  ya que la app espera siempre al menos un bloque presente. */
   function clear() {
+    dragSrcEl = null;
     listEl.innerHTML = '';
   }
 
@@ -206,7 +219,6 @@ const BlocksManager = (() => {
     init,
     addBlock,
     loadBlocks,
-    clear,
     getAllBlocksData,
     recalculateStartTimes,
   };

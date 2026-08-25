@@ -442,9 +442,18 @@ img { max-width: 100%; display: block; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label {
+  display: block;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+/* Dentro del template de bloque el input/select/textarea vive anidado en su
+   <label> (asociación implícita, sin necesitar id/for únicos en elementos
+   clonados); separa visualmente el texto de la etiqueta del control. */
+.field label > input,
+.field label > select,
+.field label > textarea {
+  margin-top: 6px;
 }
 
 .field input[type="text"],

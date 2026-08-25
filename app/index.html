@@ -58,8 +58,8 @@
             <button type="button" class="btn btn-icon" id="btn-clear-form" title="Limpiar formulario">
               <i class="fa-solid fa-eraser"></i><span class="btn-text-sm">Limpiar</span>
             </button>
-            <button type="button" class="btn btn-icon" id="btn-duplicate-plan" title="Duplicar esta planeación">
-              <i class="fa-solid fa-copy"></i><span class="btn-text-sm">Duplicar</span>
+            <button type="button" class="btn btn-icon" id="btn-duplicate-plan" title="Descargar una copia en Excel de esta planeación">
+              <i class="fa-solid fa-file-excel"></i><span class="btn-text-sm">Copia en Excel</span>
             </button>
             <div class="dropdown" id="download-dropdown">
               <button type="button" class="btn btn-primary" id="btn-download-toggle">
@@ -141,6 +141,10 @@
                 <div class="field field-inline" style="max-width:220px;">
                   <label for="plan-start-time">Hora de inicio de la clase</label>
                   <input type="time" id="plan-start-time" name="planStartTime" value="09:00" />
+                </div>
+                <div class="field field-inline" style="max-width:180px;">
+                  <label for="plan-duration-total">Duración total</label>
+                  <input type="text" id="plan-duration-total" readonly placeholder="Se calcula sola" />
                 </div>
               </div>
 
@@ -228,35 +232,35 @@
 
               <div class="feedback-question">
                 <div class="feedback-question-head">
-                  <label>¿Se cumplió con el tiempo planeado?</label>
-                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se cumplió con el tiempo planeado?">
-                    <button type="button" class="feedback-option" data-question="onTime" data-value="si">Sí</button>
-                    <button type="button" class="feedback-option" data-question="onTime" data-value="no">No</button>
+                  <label id="label-onTime">¿Se cumplió con el tiempo planeado?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-labelledby="label-onTime">
+                    <button type="button" class="feedback-option" data-question="onTime" data-value="si" aria-label="Sí se cumplió con el tiempo planeado">Sí</button>
+                    <button type="button" class="feedback-option" data-question="onTime" data-value="no" aria-label="No se cumplió con el tiempo planeado">No</button>
                   </div>
                 </div>
-                <textarea class="js-feedback-comment" data-question="onTime" rows="2" placeholder="Ej. No se cumplió con el tiempo porque el bloque 7 y 8 se extendió 10 minutos más de lo planeado." maxlength="400"></textarea>
+                <textarea class="js-feedback-comment" data-question="onTime" aria-label="Comentario sobre el cumplimiento del tiempo" rows="2" placeholder="Ej. No se cumplió con el tiempo porque el bloque 7 y 8 se extendió 10 minutos más de lo planeado." maxlength="400"></textarea>
               </div>
 
               <div class="feedback-question">
                 <div class="feedback-question-head">
-                  <label>¿Se aplicó el DUA (Diseño Universal para el Aprendizaje)?</label>
-                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se aplicó el DUA?">
-                    <button type="button" class="feedback-option" data-question="dua" data-value="si">Sí</button>
-                    <button type="button" class="feedback-option" data-question="dua" data-value="no">No</button>
+                  <label id="label-dua">¿Se aplicó el DUA (Diseño Universal para el Aprendizaje)?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-labelledby="label-dua">
+                    <button type="button" class="feedback-option" data-question="dua" data-value="si" aria-label="Sí se aplicó el DUA">Sí</button>
+                    <button type="button" class="feedback-option" data-question="dua" data-value="no" aria-label="No se aplicó el DUA">No</button>
                   </div>
                 </div>
-                <textarea class="js-feedback-comment" data-question="dua" rows="2" placeholder="Ej. Se usaron Padlet y Mentimeter para dar varias formas de participar, pero faltó ofrecer una opción de audio para el material escrito." maxlength="400"></textarea>
+                <textarea class="js-feedback-comment" data-question="dua" aria-label="Comentario sobre la aplicación del DUA" rows="2" placeholder="Ej. Se usaron Padlet y Mentimeter para dar varias formas de participar, pero faltó ofrecer una opción de audio para el material escrito." maxlength="400"></textarea>
               </div>
 
               <div class="feedback-question">
                 <div class="feedback-question-head">
-                  <label>¿Se abordaron todos los temas planeados?</label>
-                  <div class="feedback-toggle" role="radiogroup" aria-label="¿Se abordaron todos los temas planeados?">
-                    <button type="button" class="feedback-option" data-question="topics" data-value="si">Sí</button>
-                    <button type="button" class="feedback-option" data-question="topics" data-value="no">No</button>
+                  <label id="label-topics">¿Se abordaron todos los temas planeados?</label>
+                  <div class="feedback-toggle" role="radiogroup" aria-labelledby="label-topics">
+                    <button type="button" class="feedback-option" data-question="topics" data-value="si" aria-label="Sí se abordaron todos los temas planeados">Sí</button>
+                    <button type="button" class="feedback-option" data-question="topics" data-value="no" aria-label="No se abordaron todos los temas planeados">No</button>
                   </div>
                 </div>
-                <textarea class="js-feedback-comment" data-question="topics" rows="2" placeholder="Ej. Sí, se alcanzaron a ver los 17 momentos de la agenda, incluida la conclusión final." maxlength="400"></textarea>
+                <textarea class="js-feedback-comment" data-question="topics" aria-label="Comentario sobre los temas abordados" rows="2" placeholder="Ej. Sí, se alcanzaron a ver los 17 momentos de la agenda, incluida la conclusión final." maxlength="400"></textarea>
               </div>
 
               <div class="field" style="margin-top: var(--space-2);">
@@ -293,41 +297,47 @@
 
       <div class="block-card-fields">
         <div class="field">
-          <label>Bloque</label>
-          <input type="text" class="js-block-name" placeholder="Ej. Saludo, Tema 1, Cierre..." maxlength="60" />
+          <label>Bloque
+            <input type="text" class="js-block-name" placeholder="Ej. Saludo, Tema 1, Cierre..." maxlength="60" />
+          </label>
         </div>
 
         <div class="field field-small">
-          <label>Duración</label>
-          <input type="time" class="js-block-duration" step="60" value="00:05" />
+          <label>Duración
+            <input type="time" class="js-block-duration" step="60" value="00:05" />
+          </label>
         </div>
 
         <div class="field field-small">
-          <label>Hora inicio</label>
-          <input type="text" class="js-block-start" readonly placeholder="--:--" />
+          <label>Hora inicio
+            <input type="text" class="js-block-start" readonly placeholder="--:--" />
+          </label>
         </div>
 
         <div class="field field-wide">
-          <label>Actividad</label>
-          <textarea class="js-block-activity" rows="2" placeholder="Describe la actividad a realizar..." maxlength="300"></textarea>
+          <label>Actividad
+            <textarea class="js-block-activity" rows="2" placeholder="Describe la actividad a realizar..." maxlength="300"></textarea>
+          </label>
         </div>
 
         <div class="field">
-          <label>Recursos / Links</label>
-          <input type="text" class="js-block-resources" placeholder="Ej. Diapositivas, Padlet, enlace..." maxlength="200" />
+          <label>Recursos / Links
+            <input type="text" class="js-block-resources" placeholder="Ej. Diapositivas, Padlet, enlace..." maxlength="200" />
+          </label>
         </div>
 
         <div class="field field-small">
-          <label>Responsable</label>
-          <select class="js-block-responsible">
-            <option value="">Seleccionar</option>
-            <option value="Tutor">Tutor</option>
-            <option value="Profe 1">Profe 1</option>
-            <option value="Profe 2">Profe 2</option>
-            <option value="Tutores">Tutores</option>
-            <option value="Otro">Otro</option>
-          </select>
-          <input type="text" class="js-block-responsible-other" placeholder="Escribe quién es el responsable" maxlength="60" hidden />
+          <label>Responsable
+            <select class="js-block-responsible">
+              <option value="">Seleccionar</option>
+              <option value="Tutor">Tutor</option>
+              <option value="Profe 1">Profe 1</option>
+              <option value="Profe 2">Profe 2</option>
+              <option value="Tutores">Tutores</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </label>
+          <input type="text" class="js-block-responsible-other" aria-label="Nombre del responsable" placeholder="Escribe quién es el responsable" maxlength="60" hidden />
         </div>
       </div>
 

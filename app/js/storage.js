@@ -28,14 +28,24 @@ function generateId() {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 }
 
-/** Devuelve (y crea si no existe) el identificador de sesión del profesor. */
+/**
+ * Devuelve (y crea si no existe) el identificador de sesión del profesor.
+ * Si localStorage no está disponible (cuota llena, modo privado, política
+ * del navegador), degrada a un id en memoria en lugar de romper el arranque
+ * de toda la aplicación.
+ */
 function getTeacherId() {
-  let id = localStorage.getItem(STORAGE_KEYS.TEACHER_ID);
-  if (!id) {
-    id = generateId();
-    localStorage.setItem(STORAGE_KEYS.TEACHER_ID, id);
+  try {
+    let id = localStorage.getItem(STORAGE_KEYS.TEACHER_ID);
+    if (!id) {
+      id = generateId();
+      localStorage.setItem(STORAGE_KEYS.TEACHER_ID, id);
+    }
+    return id;
+  } catch (e) {
+    console.warn('No se pudo acceder a localStorage para el id de sesión; se usará uno temporal.', e);
+    return generateId();
   }
-  return id;
 }
 
 function safeParse(json, fallback) {
@@ -48,18 +58,37 @@ function safeParse(json, fallback) {
   }
 }
 
+/** Valida que el objeto tenga la forma mínima esperada de una planeación. */
+function isValidPlanShape(plan) {
+  return !!plan && typeof plan === 'object' && Array.isArray(plan.blocks);
+}
+
 const Storage = {
   KEYS: STORAGE_KEYS,
 
   getTeacherId,
 
-  /** Obtiene la planeación activa de este navegador, o null si no existe. */
+  /**
+   * Obtiene la planeación activa de este navegador, o null si no existe o
+   * su forma está corrupta (ej. editada manualmente fuera de la app).
+   */
   getActivePlan() {
-    const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAN);
-    return safeParse(raw, null);
+    let raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAN);
+    } catch (e) {
+      console.warn('No se pudo leer la planeación guardada.', e);
+      return null;
+    }
+    const plan = safeParse(raw, null);
+    if (plan !== null && !isValidPlanShape(plan)) {
+      console.warn('La planeación guardada tiene un formato inválido; se ignora.');
+      return null;
+    }
+    return plan;
   },
 
-  /** Guarda (crea o actualiza) la planeación activa. Devuelve la planeación guardada. */
+  /** Guarda (crea o actualiza) la planeación activa. Devuelve la planeación guardada, o null si falló. */
   savePlan(plan) {
     if (!plan.id) plan.id = generateId();
     plan.updatedAt = new Date().toISOString();

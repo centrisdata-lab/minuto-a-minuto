@@ -66,9 +66,20 @@ const Exporters = (() => {
     }
   }
 
+  /** true si jsPDF y el plugin autotable (script CDN separado) están realmente disponibles. */
+  function isPdfEngineReady() {
+    return typeof window.jspdf !== 'undefined'
+      && typeof window.jspdf.jsPDF === 'function'
+      && typeof window.jspdf.jsPDF.API?.autoTable === 'function';
+  }
+
   function exportPdf(plan) {
-    if (typeof window.jspdf === 'undefined') {
+    if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF !== 'function') {
       Toast.error('No se pudo cargar el módulo de PDF. Verifica tu conexión a internet.');
+      return;
+    }
+    if (!isPdfEngineReady()) {
+      Toast.error('No se pudo cargar un componente necesario para el PDF (tablas). Verifica tu conexión o desactiva temporalmente el bloqueador de anuncios.');
       return;
     }
     try {

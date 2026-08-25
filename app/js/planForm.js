@@ -44,7 +44,7 @@ const PlanForm = (() => {
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
 
     document.getElementById('btn-clear-form').addEventListener('click', handleClearForm);
-    document.getElementById('btn-duplicate-plan').addEventListener('click', handleDuplicate);
+    document.getElementById('btn-duplicate-plan').addEventListener('click', handleExportCopy);
 
     initDuringClassChecklist();
     initFeedbackSection();
@@ -146,6 +146,24 @@ const PlanForm = (() => {
   /* ---------------------------------------------------------------------
      Carga / guardado general
      --------------------------------------------------------------------- */
+
+  /**
+   * Deja el formulario en blanco. Usado tanto al crear una planeación nueva
+   * (sin plan activo aún, `keepId: false`) como al limpiar una existente
+   * (mismo registro, solo se vacía su contenido, `keepId: true`).
+   */
+  function resetToEmptyPlan({ keepId = false } = {}) {
+    if (!keepId) {
+      planId = null;
+      planCreatedAt = null;
+    }
+    els.courseName.value = '';
+    els.startTime.value = '09:00';
+    BlocksManager.loadBlocks(defaultBlocks());
+    loadDuringClassData(null);
+    loadFeedbackData(null);
+  }
+
   function loadOrCreate() {
     const plan = Storage.getActivePlan();
     if (plan) {
@@ -157,36 +175,32 @@ const PlanForm = (() => {
       loadDuringClassData(plan.duringClass);
       loadFeedbackData(plan.feedback);
     } else {
-      planId = null;
-      planCreatedAt = null;
-      els.courseName.value = '';
-      els.startTime.value = '09:00';
-      BlocksManager.loadBlocks(defaultBlocks());
-      loadDuringClassData(null);
-      loadFeedbackData(null);
+      resetToEmptyPlan();
     }
     setSaveStatus('saved');
   }
 
   function buildPlanObject() {
+    const blocks = BlocksManager.getAllBlocksData();
+    const duringClass = getDuringClassData();
+    const feedback = getFeedbackData();
     return {
       id: planId,
       createdAt: planCreatedAt,
       courseName: els.courseName.value,
       startTime: els.startTime.value,
-      blocks: BlocksManager.getAllBlocksData(),
-      duringClass: getDuringClassData(),
-      feedback: getFeedbackData(),
-      progress: calculateProgress(),
+      blocks,
+      duringClass,
+      feedback,
+      progress: calculateProgress(blocks, duringClass, feedback),
     };
   }
 
   /** Calcula el % de diligenciamiento combinando las 3 secciones (uso interno, no se muestra en la UI). */
-  function calculateProgress() {
+  function calculateProgress(blocks, duringClass, feedback) {
     let total = 0;
     let filled = 0;
 
-    const blocks = BlocksManager.getAllBlocksData();
     blocks.forEach((b) => {
       ['name', 'duration', 'activity', 'resources', 'responsible'].forEach((key) => {
         total++;
@@ -194,13 +208,11 @@ const PlanForm = (() => {
       });
     });
 
-    const during = getDuringClassData();
     DURING_CHECK_KEYS.forEach((key) => {
       total++;
-      if (during.checks[key]) filled++;
+      if (duringClass.checks[key]) filled++;
     });
 
-    const feedback = getFeedbackData();
     FEEDBACK_QUESTIONS.forEach((question) => {
       total++;
       if (feedback.answers[question].value) filled++;
@@ -246,21 +258,21 @@ const PlanForm = (() => {
       acceptLabel: 'Sí, limpiar',
     });
     if (!confirmed) return;
-    els.courseName.value = '';
-    els.startTime.value = '09:00';
-    BlocksManager.loadBlocks(defaultBlocks());
-    loadDuringClassData(null);
-    loadFeedbackData(null);
+    resetToEmptyPlan({ keepId: true });
     save();
     Toast.info('Formulario reiniciado.');
   }
 
-  function handleDuplicate() {
+  /**
+   * Descarga una copia en Excel de la planeación actual (no crea una segunda
+   * planeación editable: este navegador solo mantiene una activa a la vez).
+   */
+  function handleExportCopy() {
     save();
     const current = Storage.getActivePlan();
     if (!current) return;
     Exporters.exportXlsx(current);
-    Toast.info('Se descargó una copia en Excel. Puedes seguir editando la planeación actual.');
+    Toast.info('Se descargó una copia en Excel. Sigues editando la misma planeación.');
   }
 
   function getCurrentPlanObject() {
