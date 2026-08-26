@@ -45,13 +45,54 @@ const BlocksManager = (() => {
      Sub-bloques (fila con nombre, duración, actividad, recursos, responsable)
      --------------------------------------------------------------------- */
 
+  function updateNameDisplay(nameDisplay, value) {
+    nameDisplay.textContent = value.trim() || 'Sin nombre';
+  }
+
+  /** Muestra el input de nombre (oculta el texto fijo) y le da foco para editar. */
+  function enterNameEditMode(subBlockNode) {
+    const wrap = subBlockNode.querySelector('.js-name-display-wrap');
+    wrap.classList.add('is-editing');
+    const input = subBlockNode.querySelector('.js-block-name');
+    input.hidden = false;
+    input.focus();
+    input.select();
+  }
+
+  /** Vuelve a mostrar el nombre como texto fijo, actualizado con lo escrito. */
+  function exitNameEditMode(subBlockNode) {
+    const wrap = subBlockNode.querySelector('.js-name-display-wrap');
+    wrap.classList.remove('is-editing');
+    const input = subBlockNode.querySelector('.js-block-name');
+    const display = subBlockNode.querySelector('.js-name-display');
+    input.hidden = true;
+    updateNameDisplay(display, input.value);
+  }
+
   function createSubBlockElement(data = {}) {
     const tpl = document.getElementById('sub-block-template');
     const node = tpl.content.firstElementChild.cloneNode(true);
     node.dataset.subBlockId = data.id || `sub-${Date.now()}-${nextBlockSeq++}`;
 
-    node.querySelector('.js-block-name').value = data.name || '';
-    node.querySelector('.js-block-duration').value = data.duration || '00:05';
+    // Nombre: se muestra como texto fijo (no editable a simple vista); un
+    // botón de lápiz lo convierte en campo de texto temporalmente.
+    const nameInput = node.querySelector('.js-block-name');
+    const nameDisplay = node.querySelector('.js-name-display');
+    const nameEditBtn = node.querySelector('.js-name-edit');
+    nameInput.value = data.name || '';
+    updateNameDisplay(nameDisplay, nameInput.value);
+    nameEditBtn.addEventListener('click', () => enterNameEditMode(node));
+    nameInput.addEventListener('blur', () => exitNameEditMode(node));
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
+    });
+
+    // Duración: el profesor solo escribe un número de minutos; internamente
+    // se sigue guardando/calculando como "HH:MM" para no tocar el resto de
+    // la lógica de horas ni el formato exportado.
+    const durationMinInput = node.querySelector('.js-block-duration-min');
+    durationMinInput.value = Utils.timeToMinutes(data.duration || '00:05') || 5;
+
     node.querySelector('.js-block-start').value = data.start || '';
     node.querySelector('.js-block-activity').value = data.activity || '';
     node.querySelector('.js-block-resources').value = data.resources || '';
@@ -84,7 +125,7 @@ const BlocksManager = (() => {
         onChangeCallback();
       });
     });
-    node.querySelector('.js-block-duration').addEventListener('input', () => {
+    durationMinInput.addEventListener('input', () => {
       recalculateStartTimes();
     });
 
@@ -160,10 +201,11 @@ const BlocksManager = (() => {
     const responsibleSelect = node.querySelector('.js-block-responsible').value;
     const responsibleOther = node.querySelector('.js-block-responsible-other').value.trim();
     const responsible = responsibleSelect === 'Otro' && responsibleOther ? responsibleOther : responsibleSelect;
+    const minutes = Utils.clamp(parseInt(node.querySelector('.js-block-duration-min').value, 10) || 0, 0, 480);
 
     return {
       name: node.querySelector('.js-block-name').value,
-      duration: node.querySelector('.js-block-duration').value,
+      duration: Utils.minutesToTime(minutes),
       start: node.querySelector('.js-block-start').value,
       activity: node.querySelector('.js-block-activity').value,
       resources: node.querySelector('.js-block-resources').value,
@@ -310,7 +352,7 @@ const BlocksManager = (() => {
 
       subNodes.forEach((sub) => {
         sub.querySelector('.js-block-start').value = Utils.minutesToTime(cursor);
-        const durMinutes = Utils.timeToMinutes(sub.querySelector('.js-block-duration').value || '00:00');
+        const durMinutes = Utils.clamp(parseInt(sub.querySelector('.js-block-duration-min').value, 10) || 0, 0, 480);
         cursor += durMinutes;
         containerMinutes += durMinutes;
       });

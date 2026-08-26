@@ -708,28 +708,38 @@ img { max-width: 100%; display: block; }
   margin-bottom: var(--space-4);
 }
 
-/* ---------- Bloque contenedor ---------- */
+/* ---------- Bloque contenedor ----------
+   Cada bloque tiene un color distintivo (--block-accent), asignado de forma
+   cíclica según su posición, y aplicado al número, al fondo del encabezado
+   y al borde — para distinguir un bloque de otro de un vistazo, incluso
+   colapsados o en una lista larga. */
 .block-container {
+  --block-accent: var(--color-cyan-500);
+  --block-accent-soft: rgba(33, 150, 214, 0.1);
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-left: 4px solid var(--color-cyan-500);
+  border-left: 5px solid var(--block-accent);
   border-radius: var(--radius-md);
   padding: var(--space-4);
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
   animation: fadeInUp 0.3s ease both;
 }
 .block-container:hover { box-shadow: var(--shadow-sm); }
-.block-container:nth-child(6n+2) { border-left-color: var(--color-orange-500); }
-.block-container:nth-child(6n+3) { border-left-color: var(--color-navy-500); }
-.block-container:nth-child(6n+4) { border-left-color: var(--color-success); }
-.block-container:nth-child(6n+5) { border-left-color: var(--color-warning); }
-.block-container:nth-child(6n+6) { border-left-color: var(--color-danger); }
+.block-container:nth-child(6n+2) { --block-accent: var(--color-orange-500); --block-accent-soft: rgba(245, 166, 35, 0.12); }
+.block-container:nth-child(6n+3) { --block-accent: var(--color-navy-500); --block-accent-soft: rgba(35, 87, 156, 0.1); }
+.block-container:nth-child(6n+4) { --block-accent: var(--color-success); --block-accent-soft: rgba(31, 157, 85, 0.1); }
+.block-container:nth-child(6n+5) { --block-accent: var(--color-warning); --block-accent-soft: rgba(232, 163, 23, 0.12); }
+.block-container:nth-child(6n+6) { --block-accent: var(--color-danger); --block-accent-soft: rgba(214, 69, 69, 0.1); }
 .block-container.dragging { opacity: 0.5; }
 
 .block-container-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  background: var(--block-accent-soft);
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
+  padding: var(--space-3) var(--space-4);
 }
 
 .block-container-drag {
@@ -761,7 +771,7 @@ img { max-width: 100%; display: block; }
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--color-navy-700);
+  background: var(--block-accent);
   color: #fff;
   font-weight: 700;
   font-size: 0.85rem;
@@ -770,6 +780,7 @@ img { max-width: 100%; display: block; }
   justify-content: center;
   font-family: var(--font-display);
   flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .block-container-title {
@@ -853,6 +864,65 @@ img { max-width: 100%; display: block; }
 .field-wide { grid-column: span 1; }
 
 .js-block-responsible-other { margin-top: 6px; }
+
+/* ---------- Nombre del sub-bloque: texto fijo + botón de editar ---------- */
+.name-display-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.name-display {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 10px 0;
+}
+.name-edit-btn {
+  width: 30px !important;
+  height: 30px !important;
+  flex-shrink: 0;
+  font-size: 0.75rem !important;
+}
+.name-edit-btn:hover { color: var(--color-cyan-600); }
+.name-display-wrap.is-editing .name-display { display: none; }
+.name-display-wrap .name-edit-input { flex: 1; }
+
+/* ---------- Duración simplificada: solo un número + "min" ---------- */
+.duration-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--border-color-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  background: var(--bg-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.duration-input-wrap:focus-within {
+  border-color: var(--color-cyan-500);
+  box-shadow: var(--shadow-focus);
+}
+.js-block-duration-min {
+  border: none !important;
+  padding: 10px 0 !important;
+  width: 100%;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.js-block-duration-min:focus { box-shadow: none !important; }
+.js-block-duration-min::-webkit-outer-spin-button,
+.js-block-duration-min::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.duration-unit {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 
 .block-card-actions {
   display: flex;

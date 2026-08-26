@@ -74,13 +74,15 @@ const PlanForm = (() => {
 
   /**
    * true si ningún sub-bloque tiene contenido real diligenciado por el
-   * profesor (actividad, recursos o responsable). Un plan guardado antes de
-   * que existiera la plantilla de 7 bloques cae aquí, así que se puede
-   * migrar a la plantilla nueva sin perder ningún trabajo real.
+   * profesor (nombre, actividad, recursos o responsable). Un plan guardado
+   * antes de que existiera la plantilla de 7 bloques cae aquí, así que se
+   * puede migrar a la plantilla nueva sin perder ningún trabajo real. El
+   * nombre se incluye en la verificación porque ahora viene precargado y el
+   * profesor puede editarlo sin haber llenado todavía los demás campos.
    */
   function hasNoRealBlockContent(subBlocks) {
     if (!subBlocks || subBlocks.length === 0) return true;
-    return subBlocks.every((b) => !b.activity?.trim() && !b.resources?.trim() && !b.responsible?.trim());
+    return subBlocks.every((b) => !b.name?.trim() && !b.activity?.trim() && !b.resources?.trim() && !b.responsible?.trim());
   }
 
   /** true si `blocks` viene en la forma plana antigua (bloques-hoja, sin `subBlocks`), previa a la jerarquía de dos niveles. */
