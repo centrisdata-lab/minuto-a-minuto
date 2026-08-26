@@ -889,7 +889,38 @@ img { max-width: 100%; display: block; }
 .name-display-wrap.is-editing .name-display { display: none; }
 .name-display-wrap .name-edit-input { flex: 1; }
 
-/* ---------- Duración simplificada: solo un número + "min" ---------- */
+/* ---------- Duración: texto fijo ("N min") + botón de editar, mismo patrón que el nombre ---------- */
+.duration-display-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.duration-display {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 10px 0;
+}
+.duration-edit-btn {
+  width: 30px !important;
+  height: 30px !important;
+  flex-shrink: 0;
+  font-size: 0.75rem !important;
+}
+.duration-edit-btn:hover { color: var(--color-cyan-600); }
+.duration-display-wrap.is-editing .duration-display { display: none; }
+.duration-display-wrap .duration-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+.duration-edit-input .js-block-duration-min {
+  flex: 1 1 auto !important;
+  min-width: 30px !important;
+  width: auto !important;
+}
+
 .duration-input-wrap {
   display: flex;
   align-items: center;

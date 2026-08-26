@@ -69,6 +69,32 @@ const BlocksManager = (() => {
     updateNameDisplay(display, input.value);
   }
 
+  function updateDurationDisplay(durationDisplay, minutes) {
+    durationDisplay.textContent = `${minutes} min`;
+  }
+
+  /** Muestra el input de duración (oculta el texto fijo) y le da foco para editar. */
+  function enterDurationEditMode(subBlockNode) {
+    const wrap = subBlockNode.querySelector('.js-duration-display-wrap');
+    wrap.classList.add('is-editing');
+    const input = subBlockNode.querySelector('.js-block-duration-min');
+    input.hidden = false;
+    subBlockNode.querySelector('.duration-unit').hidden = false;
+    input.focus();
+    input.select();
+  }
+
+  /** Vuelve a mostrar la duración como texto fijo, actualizada con lo escrito. */
+  function exitDurationEditMode(subBlockNode) {
+    const wrap = subBlockNode.querySelector('.js-duration-display-wrap');
+    wrap.classList.remove('is-editing');
+    const input = subBlockNode.querySelector('.js-block-duration-min');
+    const display = subBlockNode.querySelector('.js-duration-display');
+    input.hidden = true;
+    subBlockNode.querySelector('.duration-unit').hidden = true;
+    updateDurationDisplay(display, input.value || 5);
+  }
+
   function createSubBlockElement(data = {}) {
     const tpl = document.getElementById('sub-block-template');
     const node = tpl.content.firstElementChild.cloneNode(true);
@@ -87,11 +113,24 @@ const BlocksManager = (() => {
       if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
     });
 
-    // Duración: el profesor solo escribe un número de minutos; internamente
-    // se sigue guardando/calculando como "HH:MM" para no tocar el resto de
-    // la lógica de horas ni el formato exportado.
+    // Duración: se muestra como texto fijo ("N min"), igual que el nombre;
+    // un botón de lápiz la convierte en campo numérico temporalmente. El
+    // profesor solo escribe un número de minutos; internamente se sigue
+    // guardando/calculando como "HH:MM" para no tocar el resto de la
+    // lógica de horas ni el formato exportado.
     const durationMinInput = node.querySelector('.js-block-duration-min');
+    const durationDisplay = node.querySelector('.js-duration-display');
+    const durationEditBtn = node.querySelector('.js-duration-edit');
     durationMinInput.value = Utils.timeToMinutes(data.duration || '00:05') || 5;
+    updateDurationDisplay(durationDisplay, durationMinInput.value);
+    durationEditBtn.addEventListener('click', () => enterDurationEditMode(node));
+    durationMinInput.addEventListener('blur', () => exitDurationEditMode(node));
+    durationMinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); durationMinInput.blur(); }
+    });
+    durationMinInput.addEventListener('input', () => {
+      updateDurationDisplay(durationDisplay, durationMinInput.value || 0);
+    });
 
     node.querySelector('.js-block-start').value = data.start || '';
     node.querySelector('.js-block-activity').value = data.activity || '';
