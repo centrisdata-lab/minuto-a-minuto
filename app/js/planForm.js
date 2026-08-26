@@ -167,13 +167,16 @@ const PlanForm = (() => {
     });
   }
 
+  /** Texto con el que arranca "Recomendaciones generales" en un plan nuevo — el profesor puede editarlo o borrarlo libremente. */
+  const DEFAULT_RECOMMENDATIONS_TEXT = 'Conectarse mínimo 15 minutos antes de iniciar la clase.\nProbar cámara y audio (micrófono y parlantes).\nRevisar encuadre: buena iluminación y postura frente a la cámara.\nVerificar fondo (real o virtual) limpio y sin distractores.\nTener listos y abiertos los recursos (diapositivas, links, Padlet, etc.).\nVerificar conexión a internet estable.';
+
   function getRecommendationsData() {
     return { notes: els.recommendationsNotes.value };
   }
 
-  /** Acepta tanto la forma nueva ({notes}) como el `duringClass` antiguo ({checks, notes}) para no perder notas ya guardadas. */
+  /** Acepta tanto la forma nueva ({notes}) como el `duringClass` antiguo ({checks, notes}) para no perder notas ya guardadas. Si no hay nada guardado todavía, precarga el texto estándar de recomendaciones (editable). */
   function loadRecommendationsData(data) {
-    els.recommendationsNotes.value = (data && data.notes) || '';
+    els.recommendationsNotes.value = (data && data.notes) || DEFAULT_RECOMMENDATIONS_TEXT;
   }
 
   /* ---------------------------------------------------------------------
