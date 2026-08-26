@@ -10,7 +10,21 @@ const App = (() => {
     ConfirmModal.init();
     AdminPanel.init();
     Storage.getTeacherId(); // asegura que exista una sesión de navegador
-    TeacherIdentity.init(() => PlanForm.init());
+
+    // El callback de TeacherIdentity se dispara tanto la primera vez que se
+    // completa el formulario de identidad como cada vez que el profesor usa
+    // el badge "Cambiar" para corregir su nombre/grupo más tarde. PlanForm
+    // solo debe inicializarse una sola vez (reinicializarlo duplicaría
+    // listeners y volvería a disparar guardados); en los cambios posteriores
+    // no hace falta hacer nada más, el plan activo no depende de la
+    // identidad para cargarse.
+    let planFormStarted = false;
+    TeacherIdentity.init(() => {
+      if (planFormStarted) return;
+      planFormStarted = true;
+      PlanForm.init();
+    });
+
     bindGlobalActions();
     document.getElementById('footer-year').textContent = new Date().getFullYear();
   }
