@@ -165,73 +165,51 @@
             </div>
           </section>
 
-          <!-- ===== Card 2: Durante la clase ===== -->
-          <section class="card">
-            <div class="card-header">
-              <div class="card-header-icon icon-cyan"><span class="step-number">2</span></div>
-              <div>
-                <h3>Durante la clase</h3>
-                <p>Marca los aspectos técnicos y logísticos que debes verificar antes de iniciar y mientras dictas la clase.</p>
-              </div>
-            </div>
+          <!-- ===== Card 2: Recomendaciones generales (parte del "antes", colapsable) ===== -->
+          <section class="card" id="card-recommendations">
+            <button type="button" class="card-header card-header-toggle js-card-toggle" aria-expanded="true" aria-controls="card-recommendations-body">
+              <span class="card-header-icon icon-cyan"><span class="step-number">2</span></span>
+              <span class="card-header-text">
+                <span class="card-header-title">Recomendaciones generales</span>
+                <span class="card-header-desc">Anota cualquier recomendación general para esta clase: aspectos técnicos, logísticos o de cualquier otro tipo.</span>
+              </span>
+              <i class="fa-solid fa-chevron-down chev card-header-chev"></i>
+            </button>
 
-            <div class="card-body">
-              <div class="example-note">
-                <i class="fa-solid fa-lightbulb"></i>
-                <span>Ejemplo: marca "Conectarse 15 minutos antes" y "Probar cámara y audio" como referencia de lo que debes revisar siempre.</span>
-              </div>
-
-              <div class="checklist" id="during-class-checklist">
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="connectEarly" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Conectarse mínimo 15 minutos antes de iniciar la clase</span>
-                </label>
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="testCamera" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Probar cámara y audio (micrófono y parlantes)</span>
-                </label>
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="framing" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Revisar encuadre: buena iluminación y postura frente a la cámara</span>
-                </label>
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="background" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Verificar fondo (real o virtual) limpio y sin distractores</span>
-                </label>
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="resourcesReady" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Tener listos y abiertos los recursos (diapositivas, links, Padlet, etc.)</span>
-                </label>
-                <label class="checklist-item">
-                  <input type="checkbox" class="js-during-check" data-key="internet" />
-                  <span class="checklist-box"><i class="fa-solid fa-check"></i></span>
-                  <span class="checklist-text">Verificar conexión a internet estable</span>
-                </label>
+            <div class="card-body" id="card-recommendations-body">
+              <div class="submitted-banner" id="plan-submitted-banner" hidden>
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Minuto a Minuto enviado el <strong class="js-submitted-at"></strong>. Ya no se puede editar.</span>
               </div>
 
-              <div class="field" style="margin-top: var(--space-4);">
-                <label for="during-class-notes">Otros aspectos a verificar</label>
-                <textarea id="during-class-notes" rows="3" placeholder="Ej. Recordar activar la sala de espera, tener a la mano el enlace de la lista de asistencia, avisar al profe de apoyo el horario exacto..." maxlength="400"></textarea>
+              <div class="field">
+                <label for="recommendations-notes">Recomendaciones generales para esta clase</label>
+                <textarea id="recommendations-notes" rows="4" placeholder="Ej. Conectarse 15 minutos antes, probar cámara y audio, tener listos los recursos, avisar al profe de apoyo el horario exacto..." maxlength="600"></textarea>
               </div>
+
+              <button type="button" class="btn btn-primary" id="btn-submit-plan">
+                <i class="fa-solid fa-paper-plane"></i> Enviar Minuto a Minuto
+              </button>
             </div>
           </section>
 
-          <!-- ===== Card 3: Después de la clase (retroalimentación) ===== -->
-          <section class="card">
-            <div class="card-header">
-              <div class="card-header-icon icon-navy"><span class="step-number">3</span></div>
-              <div>
-                <h3>Después de la clase — Retroalimentación</h3>
-                <p>Responde estas preguntas al finalizar para identificar qué se debe mejorar en la próxima clase.</p>
-              </div>
-            </div>
+          <!-- ===== Card 3: Después de la clase (retroalimentación) — oculta hasta el primer envío ===== -->
+          <section class="card" id="card-feedback" hidden>
+            <button type="button" class="card-header card-header-toggle js-card-toggle" aria-expanded="true" aria-controls="card-feedback-body">
+              <span class="card-header-icon icon-navy"><span class="step-number">3</span></span>
+              <span class="card-header-text">
+                <span class="card-header-title">Después de la clase — Retroalimentación</span>
+                <span class="card-header-desc">Responde estas preguntas al finalizar para identificar qué se debe mejorar en la próxima clase.</span>
+              </span>
+              <i class="fa-solid fa-chevron-down chev card-header-chev"></i>
+            </button>
 
-            <div class="card-body">
+            <div class="card-body" id="card-feedback-body">
+              <div class="submitted-banner" id="feedback-submitted-banner" hidden>
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Retroalimentación enviada el <strong class="js-submitted-at"></strong>. Ya no se puede editar.</span>
+              </div>
+
               <div class="example-note">
                 <i class="fa-solid fa-lightbulb"></i>
                 <span>Ejemplo: "No se cumplió con el tiempo porque el bloque 7 y 8 se extendió 10 minutos más de lo planeado."</span>
@@ -274,6 +252,10 @@
                 <label for="feedback-improve">Aspectos a mejorar para la próxima clase</label>
                 <textarea id="feedback-improve" rows="3" placeholder="Ej. Ajustar el tiempo del bloque de práctica y preparar una segunda dinámica de repaso más corta como alternativa." maxlength="500"></textarea>
               </div>
+
+              <button type="button" class="btn btn-primary" id="btn-submit-feedback">
+                <i class="fa-solid fa-paper-plane"></i> Enviar retroalimentación
+              </button>
             </div>
           </section>
 
@@ -316,6 +298,20 @@
         </div>
       </div>
 
+      <div class="block-note-section js-block-note-section" hidden>
+        <div class="block-note-wrap js-block-note-wrap">
+          <i class="fa-solid fa-note-sticky block-note-icon" aria-hidden="true"></i>
+          <span class="block-note-display js-block-note-display"></span>
+          <textarea class="js-block-note-input block-note-edit-input" rows="2" placeholder="Escribe una nota para este bloque..." maxlength="300" hidden></textarea>
+          <button type="button" class="icon-btn block-note-edit-btn js-block-note-edit" title="Editar nota del bloque" aria-label="Editar nota del bloque">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+        </div>
+      </div>
+      <button type="button" class="btn-add-note js-add-block-note">
+        <i class="fa-solid fa-note-sticky"></i> Agregar nota
+      </button>
+
       <div class="sub-blocks-list js-sub-blocks-list" id=""></div>
 
       <button type="button" class="btn btn-dashed btn-dashed-sm js-add-sub-block">
@@ -348,7 +344,7 @@
           <div class="duration-display-wrap js-duration-display-wrap">
             <span class="duration-display js-duration-display">5 min</span>
             <div class="duration-input-wrap duration-edit-input">
-              <input type="number" class="js-block-duration-min" min="1" max="480" step="1" value="5" inputmode="numeric" hidden />
+              <input type="number" class="js-block-duration-min" min="0" max="480" step="1" value="5" inputmode="numeric" hidden />
               <span class="duration-unit" hidden>min</span>
             </div>
             <button type="button" class="icon-btn duration-edit-btn js-duration-edit" title="Editar duración del bloque" aria-label="Editar duración del bloque">

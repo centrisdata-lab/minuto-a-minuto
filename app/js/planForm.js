@@ -1,7 +1,8 @@
 /**
  * planForm.js
- * Controla el editor de las 3 secciones (Preparación / Durante / Después de
- * la clase): carga de datos y autoguardado.
+ * Controla el editor de las 2 etapas de envío (Preparación + Recomendaciones
+ * generales, luego Retroalimentación tras el primer envío): carga de datos y
+ * autoguardado.
  * Solo existe una planeación activa por navegador (ver storage.js).
  */
 
@@ -9,9 +10,9 @@ const PlanForm = (() => {
   let planId = null;
   let planCreatedAt = null;
   let els = {};
+  let submissionState = { submitted: false, submittedAt: null, feedbackSubmitted: false, feedbackSubmittedAt: null };
   const debouncedSave = Utils.debounce(() => save(), 600);
 
-  const DURING_CHECK_KEYS = ['connectEarly', 'testCamera', 'framing', 'background', 'resourcesReady', 'internet'];
   const FEEDBACK_QUESTIONS = ['onTime', 'dua', 'topics'];
 
   function cacheEls() {
@@ -20,8 +21,14 @@ const PlanForm = (() => {
       courseName: document.getElementById('plan-course-name'),
       startTime: document.getElementById('plan-start-time'),
       saveStatus: document.getElementById('save-status'),
-      duringNotes: document.getElementById('during-class-notes'),
+      recommendationsNotes: document.getElementById('recommendations-notes'),
       feedbackImprove: document.getElementById('feedback-improve'),
+      recommendationsCard: document.getElementById('card-recommendations'),
+      feedbackCard: document.getElementById('card-feedback'),
+      btnSubmitPlan: document.getElementById('btn-submit-plan'),
+      btnSubmitFeedback: document.getElementById('btn-submit-feedback'),
+      planSubmittedBanner: document.getElementById('plan-submitted-banner'),
+      feedbackSubmittedBanner: document.getElementById('feedback-submitted-banner'),
     };
   }
 
@@ -46,31 +53,59 @@ const PlanForm = (() => {
     document.getElementById('btn-clear-form').addEventListener('click', handleClearForm);
     document.getElementById('btn-duplicate-plan').addEventListener('click', handleExportCopy);
 
-    initDuringClassChecklist();
+    initCollapsibleSections();
+    initRecommendationsSection();
     initFeedbackSection();
+    els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
+    els.btnSubmitFeedback.addEventListener('click', handleSubmitFeedback);
 
     loadOrCreate();
   }
 
+  /** Header-botón de una card colapsable: alterna `hidden` del body + aria-expanded + chevron. */
+  function initCollapsibleSections() {
+    document.querySelectorAll('.js-card-toggle').forEach((toggle) => {
+      const bodyId = toggle.getAttribute('aria-controls');
+      const body = document.getElementById(bodyId);
+      if (!body) return;
+      toggle.addEventListener('click', () => {
+        const isOpen = !body.hidden;
+        body.hidden = isOpen;
+        toggle.setAttribute('aria-expanded', String(!isOpen));
+      });
+    });
+  }
+
   /**
    * Bloques con los que arranca toda planeación nueva (y "Limpiar formulario").
-   * Solo el Bloque 1 viene con su contenido ya definido: 3 sub-bloques que
-   * suman 10 minutos (Saludo y bienvenida 2 min, Agenda de clase 2 min,
-   * Recordando lo aprendido 6 min). El profesor puede seguir editando,
-   * agregando o quitando sub-bloques ahí igual que en cualquier otro bloque.
-   * Los bloques 2 a 7 arrancan vacíos (un sub-bloque en blanco cada uno),
-   * a la espera de que se definan más adelante.
+   * Los 3 bloques ya vienen con su contenido estándar definido; el profesor
+   * puede seguir editando, agregando o quitando sub-bloques igual que en
+   * cualquier otro bloque (nada queda bloqueado a la fuerza, solo precargado).
    */
   function defaultBlocks() {
-    const block1SubBlocks = [
-      { name: 'Saludo y bienvenida', duration: '00:02', activity: '', resources: '', responsible: '' },
-      { name: 'Agenda de clase', duration: '00:02', activity: '', resources: '', responsible: '' },
-      { name: 'Recordando lo aprendido', duration: '00:06', activity: '', resources: '', responsible: '' },
-    ];
-    const emptyBlocksCount = 6; // Bloques 2 a 7, sin definir todavía
     return [
-      { subBlocks: block1SubBlocks },
-      ...Array.from({ length: emptyBlocksCount }, () => ({ subBlocks: [{}] })),
+      {
+        subBlocks: [
+          { name: 'Saludo y bienvenida', duration: '00:02', activity: '', resources: '', responsible: '' },
+          { name: 'Agenda de clase', duration: '00:02', activity: '', resources: '', responsible: '' },
+          { name: 'Recordando lo aprendido', duration: '00:06', activity: '', resources: '', responsible: '' },
+          { name: 'Gamificación opcional', duration: '00:00', activity: '', resources: '', responsible: '' },
+        ],
+      },
+      {
+        subBlocks: [
+          { name: 'Inicio del tema', duration: '00:15', activity: '', resources: '', responsible: '' },
+          { name: 'Pausa activa', duration: '00:03', activity: '', resources: '', responsible: '' },
+          { name: 'Continuidad del tema', duration: '00:12', activity: '', resources: '', responsible: '' },
+          { name: 'Momento de práctica', duration: '00:20', activity: '', resources: '', responsible: '' },
+        ],
+      },
+      {
+        subBlocks: [
+          { name: 'Preguntas e inquietudes', duration: '00:30', activity: '', resources: '', responsible: '' },
+        ],
+        note: 'Aquí se podrán abordar las preguntas sobre temas de la clase o sobre la navegación en el Campus',
+      },
     ];
   }
 
@@ -124,35 +159,21 @@ const PlanForm = (() => {
   }
 
   /* ---------------------------------------------------------------------
-     Sección "Durante la clase" (checklist)
+     Sección "Recomendaciones generales" (texto libre, parte del "antes")
      --------------------------------------------------------------------- */
-  function initDuringClassChecklist() {
-    document.querySelectorAll('.js-during-check').forEach((checkbox) => {
-      checkbox.addEventListener('change', () => {
-        debouncedSave();
-      });
-    });
-    els.duringNotes.addEventListener('input', () => {
+  function initRecommendationsSection() {
+    els.recommendationsNotes.addEventListener('input', () => {
       debouncedSave();
     });
   }
 
-  function getDuringClassData() {
-    const checks = {};
-    DURING_CHECK_KEYS.forEach((key) => {
-      const checkbox = document.querySelector(`.js-during-check[data-key="${key}"]`);
-      checks[key] = checkbox ? checkbox.checked : false;
-    });
-    return { checks, notes: els.duringNotes.value };
+  function getRecommendationsData() {
+    return { notes: els.recommendationsNotes.value };
   }
 
-  function loadDuringClassData(data) {
-    const checks = (data && data.checks) || {};
-    DURING_CHECK_KEYS.forEach((key) => {
-      const checkbox = document.querySelector(`.js-during-check[data-key="${key}"]`);
-      if (checkbox) checkbox.checked = !!checks[key];
-    });
-    els.duringNotes.value = (data && data.notes) || '';
+  /** Acepta tanto la forma nueva ({notes}) como el `duringClass` antiguo ({checks, notes}) para no perder notas ya guardadas. */
+  function loadRecommendationsData(data) {
+    els.recommendationsNotes.value = (data && data.notes) || '';
   }
 
   /* ---------------------------------------------------------------------
@@ -225,8 +246,9 @@ const PlanForm = (() => {
     els.courseName.value = '';
     els.startTime.value = '09:00';
     BlocksManager.loadBlocks(defaultBlocks());
-    loadDuringClassData(null);
+    loadRecommendationsData(null);
     loadFeedbackData(null);
+    applySubmissionState({ submitted: false, feedbackSubmitted: false });
   }
 
   function loadOrCreate() {
@@ -244,19 +266,23 @@ const PlanForm = (() => {
         blocksToLoad = migrateFlatBlocksToContainers(blocksToLoad);
       }
       // Si nadie diligenció nada real todavía, se reemplaza por la plantilla
-      // estándar de 7 bloques sin perder ningún trabajo real.
+      // estándar sin perder ningún trabajo real.
       if (hasNoRealBlockContent(getFlatFromContainers(blocksToLoad))) {
         blocksToLoad = defaultBlocks();
       } else {
         // Si hay contenido real pero faltan bloques estándar (por ejemplo,
-        // guardado durante una versión anterior con menos de 7), se
+        // guardado durante una versión anterior con menos bloques), se
         // completan al final sin tocar los que ya existen.
         blocksToLoad = fillMissingDefaultBlocks(blocksToLoad);
       }
 
       BlocksManager.loadBlocks(blocksToLoad);
-      loadDuringClassData(plan.duringClass);
+      // `duringClass` es el nombre antiguo del campo (antes de que la
+      // sección dejara de ser un checklist); se sigue leyendo por si el
+      // plan guardado viene de una versión previa.
+      loadRecommendationsData(plan.recommendations || plan.duringClass);
       loadFeedbackData(plan.feedback);
+      applySubmissionState(plan);
     } else {
       resetToEmptyPlan();
     }
@@ -266,7 +292,7 @@ const PlanForm = (() => {
   function buildPlanObject() {
     const blocks = BlocksManager.getAllBlocksData();
     const flatSubBlocks = BlocksManager.getFlatSubBlocksData();
-    const duringClass = getDuringClassData();
+    const recommendations = getRecommendationsData();
     const feedback = getFeedbackData();
     return {
       id: planId,
@@ -274,14 +300,18 @@ const PlanForm = (() => {
       courseName: els.courseName.value,
       startTime: els.startTime.value,
       blocks,
-      duringClass,
+      recommendations,
       feedback,
-      progress: calculateProgress(flatSubBlocks, duringClass, feedback),
+      submitted: submissionState.submitted,
+      submittedAt: submissionState.submittedAt,
+      feedbackSubmitted: submissionState.feedbackSubmitted,
+      feedbackSubmittedAt: submissionState.feedbackSubmittedAt,
+      progress: calculateProgress(flatSubBlocks, recommendations, feedback),
     };
   }
 
-  /** Calcula el % de diligenciamiento combinando las 3 secciones (uso interno, no se muestra en la UI). */
-  function calculateProgress(subBlocks, duringClass, feedback) {
+  /** Calcula el % de diligenciamiento combinando las 2 etapas (uso interno, no se muestra en la UI). */
+  function calculateProgress(subBlocks, recommendations, feedback) {
     let total = 0;
     let filled = 0;
 
@@ -292,10 +322,8 @@ const PlanForm = (() => {
       });
     });
 
-    DURING_CHECK_KEYS.forEach((key) => {
-      total++;
-      if (duringClass.checks[key]) filled++;
-    });
+    total++;
+    if (recommendations.notes && recommendations.notes.trim()) filled++;
 
     FEEDBACK_QUESTIONS.forEach((question) => {
       total++;
@@ -338,7 +366,7 @@ const PlanForm = (() => {
   async function handleClearForm() {
     const confirmed = await ConfirmModal.ask({
       title: 'Limpiar formulario',
-      message: 'Se borrará toda la información de las 3 secciones (preparación, durante y después de la clase). Esta acción no se puede deshacer.',
+      message: 'Se borrará toda la información de la planeación (preparación, recomendaciones y retroalimentación). Esta acción no se puede deshacer.',
       acceptLabel: 'Sí, limpiar',
     });
     if (!confirmed) return;
@@ -361,6 +389,95 @@ const PlanForm = (() => {
 
   function getCurrentPlanObject() {
     return buildPlanObject();
+  }
+
+  /* ---------------------------------------------------------------------
+     Envío en dos etapas: "antes" (Minuto a Minuto + recomendaciones) y,
+     tras enviarlo, "después" (retroalimentación). Cada envío queda fijo:
+     una vez enviada una etapa, sus campos se bloquean y no se puede volver
+     a editar (habría que crear una planeación nueva).
+     --------------------------------------------------------------------- */
+
+  function formatSubmittedAt(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  /** Refleja en la UI el estado guardado (`submitted`/`feedbackSubmitted`) de un plan: bloquea campos, muestra banners, revela la card de retroalimentación. */
+  function applySubmissionState(plan) {
+    submissionState = {
+      submitted: !!(plan && plan.submitted),
+      submittedAt: (plan && plan.submittedAt) || null,
+      feedbackSubmitted: !!(plan && plan.feedbackSubmitted),
+      feedbackSubmittedAt: (plan && plan.feedbackSubmittedAt) || null,
+    };
+    const { submitted, submittedAt, feedbackSubmitted, feedbackSubmittedAt } = submissionState;
+
+    els.recommendationsCard.classList.toggle('is-locked', submitted);
+    els.btnSubmitPlan.hidden = submitted;
+    els.planSubmittedBanner.hidden = !submitted;
+    els.planSubmittedBanner.querySelector('.js-submitted-at').textContent = formatSubmittedAt(submittedAt);
+    setFormFieldsDisabled(els.recommendationsCard, submitted);
+    BlocksManager.setLocked(submitted);
+
+    els.feedbackCard.hidden = !submitted;
+    els.feedbackCard.classList.toggle('is-locked', feedbackSubmitted);
+    els.btnSubmitFeedback.hidden = feedbackSubmitted;
+    els.feedbackSubmittedBanner.hidden = !feedbackSubmitted;
+    els.feedbackSubmittedBanner.querySelector('.js-submitted-at').textContent = formatSubmittedAt(feedbackSubmittedAt);
+    setFormFieldsDisabled(els.feedbackCard, feedbackSubmitted);
+  }
+
+  function setFormFieldsDisabled(cardEl, disabled) {
+    cardEl.querySelectorAll('input, textarea, select, button.feedback-option').forEach((el) => {
+      el.disabled = disabled;
+    });
+  }
+
+  /**
+   * Punto de integración con el backend (Frente B, pendiente de credenciales
+   * de Google Drive / panel admin). Por ahora guarda el envío en una clave
+   * de localStorage separada, simulando la tabla que leerá el panel admin.
+   * TODO: reemplazar por un POST real cuando Drive/admin estén conectados.
+   */
+  function submitToBackend(payload) {
+    console.info('[submitToBackend] TODO: conectar con backend real.', payload);
+    try {
+      const key = 'mam_submissions';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push(payload);
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) {
+      console.error('No se pudo registrar el envío localmente.', e);
+    }
+  }
+
+  function handleSubmitPlan() {
+    if (!els.courseName.value.trim()) {
+      Toast.warning('Escribe el nombre del curso antes de enviar.');
+      els.courseName.focus();
+      return;
+    }
+    submissionState.submitted = true;
+    submissionState.submittedAt = new Date().toISOString();
+    applySubmissionState({ ...submissionState });
+
+    save();
+    submitToBackend({ type: 'plan', plan: buildPlanObject() });
+    Toast.success('Minuto a Minuto enviado. Ahora puedes registrar la retroalimentación al terminar la clase.');
+    els.feedbackCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleSubmitFeedback() {
+    submissionState.feedbackSubmitted = true;
+    submissionState.feedbackSubmittedAt = new Date().toISOString();
+    applySubmissionState({ ...submissionState });
+
+    save();
+    submitToBackend({ type: 'feedback', plan: buildPlanObject() });
+    Toast.success('Retroalimentación enviada. ¡Gracias!');
   }
 
   return {

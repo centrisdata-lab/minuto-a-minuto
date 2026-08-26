@@ -121,7 +121,8 @@ const BlocksManager = (() => {
     const durationMinInput = node.querySelector('.js-block-duration-min');
     const durationDisplay = node.querySelector('.js-duration-display');
     const durationEditBtn = node.querySelector('.js-duration-edit');
-    durationMinInput.value = Utils.timeToMinutes(data.duration || '00:05') || 5;
+    const parsedDuration = data.duration ? Utils.timeToMinutes(data.duration) : null;
+    durationMinInput.value = parsedDuration !== null && parsedDuration !== undefined ? parsedDuration : 5;
     updateDurationDisplay(durationDisplay, durationMinInput.value);
     durationEditBtn.addEventListener('click', () => enterDurationEditMode(node));
     durationMinInput.addEventListener('blur', () => exitDurationEditMode(node));
@@ -256,6 +257,53 @@ const BlocksManager = (() => {
      Bloques contenedores (colapsables, agrupan sub-bloques)
      --------------------------------------------------------------------- */
 
+  /** Muestra la nota del bloque como texto fijo, actualizada con lo escrito. */
+  function updateNoteDisplay(noteDisplay, value) {
+    noteDisplay.textContent = value.trim();
+  }
+
+  function enterNoteEditMode(containerNode) {
+    const wrap = containerNode.querySelector('.js-block-note-wrap');
+    wrap.classList.add('is-editing');
+    const input = containerNode.querySelector('.js-block-note-input');
+    input.hidden = false;
+    input.focus();
+  }
+
+  function exitNoteEditMode(containerNode) {
+    const wrap = containerNode.querySelector('.js-block-note-wrap');
+    wrap.classList.remove('is-editing');
+    const input = containerNode.querySelector('.js-block-note-input');
+    const display = containerNode.querySelector('.js-block-note-display');
+    input.hidden = true;
+    updateNoteDisplay(display, input.value);
+  }
+
+  /** Configura el bloque de nota opcional de un contenedor (texto-fijo+lápiz, o botón "Agregar nota" si aún no tiene). */
+  function setupBlockNote(node, data) {
+    const noteSection = node.querySelector('.js-block-note-section');
+    const noteWrap = node.querySelector('.js-block-note-wrap');
+    const noteInput = node.querySelector('.js-block-note-input');
+    const noteDisplay = node.querySelector('.js-block-note-display');
+    const noteEditBtn = node.querySelector('.js-block-note-edit');
+    const addNoteBtn = node.querySelector('.js-add-block-note');
+
+    const hasNote = !!(data.note && data.note.trim());
+    noteInput.value = data.note || '';
+    updateNoteDisplay(noteDisplay, noteInput.value);
+    noteSection.hidden = !hasNote;
+    addNoteBtn.hidden = hasNote;
+
+    noteEditBtn.addEventListener('click', () => enterNoteEditMode(node));
+    noteInput.addEventListener('blur', () => exitNoteEditMode(node));
+    noteInput.addEventListener('input', () => onChangeCallback());
+    addNoteBtn.addEventListener('click', () => {
+      addNoteBtn.hidden = true;
+      noteSection.hidden = false;
+      enterNoteEditMode(node);
+    });
+  }
+
   function createBlockContainer(data = {}) {
     const tpl = document.getElementById('block-template');
     const node = tpl.content.firstElementChild.cloneNode(true);
@@ -269,6 +317,8 @@ const BlocksManager = (() => {
 
     const subBlocksData = (data.subBlocks && data.subBlocks.length) ? data.subBlocks : [{}];
     subBlocksData.forEach((sb) => subList.appendChild(createSubBlockElement(sb)));
+
+    setupBlockNote(node, data);
 
     toggle.addEventListener('click', () => {
       const isOpen = subList.hidden;
@@ -418,6 +468,7 @@ const BlocksManager = (() => {
     return {
       id: node.dataset.blockId,
       subBlocks: [...node.querySelectorAll('.sub-block-card')].map(extractSubBlockData),
+      note: node.querySelector('.js-block-note-input')?.value || '',
     };
   }
 
@@ -448,6 +499,25 @@ const BlocksManager = (() => {
     recalculateStartTimes();
   }
 
+  /**
+   * Bloquea o desbloquea la edición de todo el Minuto a Minuto (usado tras
+   * enviar la planeación). Los campos y los botones de agregar/eliminar/
+   * duplicar se desactivan, igual que el drag & drop; el botón de
+   * expandir/colapsar cada bloque (`.js-block-toggle`) se deja siempre
+   * activo para poder seguir consultando el contenido ya enviado.
+   */
+  function setLocked(locked) {
+    listEl.querySelectorAll('input, textarea, select').forEach((el) => {
+      el.disabled = locked;
+    });
+    listEl.querySelectorAll('button:not(.js-block-toggle)').forEach((el) => {
+      el.disabled = locked;
+    });
+    listEl.querySelectorAll('.block-container, .sub-block-card').forEach((el) => {
+      el.setAttribute('draggable', String(!locked));
+    });
+  }
+
   return {
     init,
     addBlock,
@@ -455,6 +525,7 @@ const BlocksManager = (() => {
     getAllBlocksData,
     getFlatSubBlocksData,
     recalculateStartTimes,
+    setLocked,
   };
 })();
 

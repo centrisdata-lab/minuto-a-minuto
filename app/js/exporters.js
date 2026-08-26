@@ -1,9 +1,9 @@
 /**
  * exporters.js
- * Exportación del Minuto a Minuto (solo la sección "Preparación de clase")
- * a Excel (.xlsx) y a PDF (listo para imprimir/compartir). Las secciones
- * "Durante la clase" y "Después de la clase" son de uso interno del profesor
- * y no se incluyen en los archivos descargables.
+ * Exportación del Minuto a Minuto (bloques + sus notas) a Excel (.xlsx) y a
+ * PDF (listo para imprimir/compartir). Las recomendaciones generales y la
+ * retroalimentación de "Después de la clase" son de uso interno del
+ * profesor y no se incluyen en los archivos descargables.
  * Depende de SheetJS (XLSX) y jsPDF + autotable, cargados por CDN en index.html.
  */
 
@@ -17,6 +17,13 @@ const Exporters = (() => {
   /** Aplana los bloques contenedores (con sub-bloques anidados) a la lista simple de filas que ya generan los exportadores. */
   function flattenBlocks(blocks) {
     return (blocks || []).flatMap((container) => container.subBlocks || []);
+  }
+
+  /** Notas de bloque (a nivel contenedor, ej. Bloque 3) que sí tienen texto, en orden. */
+  function collectBlockNotes(blocks) {
+    return (blocks || [])
+      .map((container) => (container.note || '').trim())
+      .filter(Boolean);
   }
 
   /** Construye un nombre de archivo seguro incluyendo el nombre del curso si existe. */
@@ -51,13 +58,22 @@ const Exporters = (() => {
         rows.push([i + 1, b.name || '', b.duration || '', b.start || '', b.activity || '', b.resources || '', b.responsible || '']);
       });
 
+      const merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+      const notes = collectBlockNotes(plan.blocks);
+      if (notes.length) {
+        rows.push([]);
+        notes.forEach((note) => {
+          const noteRow = rows.length;
+          rows.push([`Nota: ${note}`]);
+          merges.push({ s: { r: noteRow, c: 0 }, e: { r: noteRow, c: 6 } });
+        });
+      }
+
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!cols'] = [
         { wch: 14 }, { wch: 26 }, { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 24 }, { wch: 16 },
       ];
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-      ];
+      ws['!merges'] = merges;
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Minuto a Minuto');
@@ -135,6 +151,19 @@ const Exporters = (() => {
           4: { cellWidth: 220 },
         },
       });
+
+      const notes = collectBlockNotes(plan.blocks);
+      if (notes.length) {
+        let y = doc.lastAutoTable.finalY + 20;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(30, 30, 30);
+        notes.forEach((note) => {
+          const lines = doc.splitTextToSize(`Nota: ${note}`, pageWidth - 60);
+          doc.text(lines, 30, y);
+          y += lines.length * 12 + 6;
+        });
+      }
 
       const fileName = buildFileName(plan.courseName, 'pdf');
       doc.save(fileName);
