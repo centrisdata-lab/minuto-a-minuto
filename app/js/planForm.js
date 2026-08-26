@@ -498,11 +498,13 @@ const PlanForm = (() => {
   /**
    * Registra el envío localmente (respaldo/cache, y lo que hoy usa
    * localStorage['mam_submissions']) y, si es posible, lo sincroniza con
-   * Google Drive real: sube el Excel del plan a la carpeta compartida y
-   * agrega una fila al Sheet central que lee el panel admin (ver
-   * driveSync.js). Si Drive falla (sin conexión, permiso rechazado, etc.)
-   * el envío local ya quedó guardado igual — no se pierde el trabajo del
-   * profesor, solo no llega al panel admin hasta que reintente.
+   * Google Drive real a través de nuestro propio backend (ver
+   * driveSync.js → submitViaBackend, y netlify/functions/submit-minuto.js),
+   * que sube el Excel y registra la fila usando una cuenta de servicio —
+   * el profesor nunca ve una ventana de login de Google. Si el backend
+   * falla (sin conexión, servidor caído, etc.) el envío local ya quedó
+   * guardado igual — no se pierde el trabajo del profesor, solo no llega
+   * al panel admin hasta que reintente.
    */
   async function submitToBackend(payload) {
     try {
@@ -519,22 +521,15 @@ const PlanForm = (() => {
     try {
       const identity = TeacherIdentity.getIdentity() || {};
       const blob = Exporters.exportXlsxBlob(payload.plan);
-      let driveLink = '';
-      if (blob) {
-        const fileName = Exporters.buildFileName(payload.plan.courseName, 'xlsx');
-        const uploaded = await DriveSync.uploadExcelToDrive(blob, fileName);
-        driveLink = uploaded.webViewLink || '';
-      }
-      await DriveSync.appendSubmissionRow([
-        new Date().toISOString(),
-        payload.type,
-        identity.name || '',
-        identity.group || '',
-        identity.courseLabel || '',
-        identity.schedule || '',
-        driveLink,
-        `${payload.plan.progress || 0}%`,
-      ]);
+      if (!blob) throw new Error('No se pudo generar el Excel para enviar.');
+      const fileName = Exporters.buildFileName(payload.plan.courseName, 'xlsx');
+      await DriveSync.submitViaBackend({
+        blob,
+        fileName,
+        type: payload.type,
+        teacher: identity,
+        progress: payload.plan.progress || 0,
+      });
       return { synced: true };
     } catch (e) {
       console.error('No se pudo sincronizar el envío con Google Drive.', e);
