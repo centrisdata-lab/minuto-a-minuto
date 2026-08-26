@@ -16,6 +16,9 @@
 
   <link rel="icon" type="image/png" href="assets/logo-campus.png" />
   <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Identity Services: autorización OAuth para subir a Drive/Sheets -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -34,6 +37,10 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" class="identity-badge" id="identity-badge" title="Cambiar de profesor/grupo" aria-label="Cambiar de profesor/grupo" hidden></button>
+        <button type="button" class="icon-btn" id="btn-admin-panel" title="Panel de administración" aria-label="Panel de administración">
+          <i class="fa-solid fa-user-shield"></i>
+        </button>
         <button type="button" class="icon-btn" id="theme-toggle" title="Cambiar modo claro/oscuro" aria-label="Cambiar modo claro/oscuro">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -413,6 +420,86 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL: Identidad del profesor (nombre + grupo) ===================== -->
+  <div class="modal-overlay" id="identity-modal" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="identity-modal-title">
+      <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-chalkboard-user"></i></div>
+      <h3 id="identity-modal-title">¿Quién va a diligenciar este Minuto a Minuto?</h3>
+      <p>Esta información identifica tu planeación cuando la envíes. Solo se pide una vez por navegador.</p>
+
+      <form id="identity-form" class="identity-form">
+        <div class="field">
+          <label for="identity-name">Tu nombre</label>
+          <input type="text" id="identity-name" placeholder="Ej. Flora Ramírez" maxlength="80" autocomplete="off" />
+        </div>
+
+        <div class="field identity-group-field">
+          <label for="identity-group-search">Tu grupo</label>
+          <input type="text" id="identity-group-search" placeholder="Busca por curso, grupo u horario..." autocomplete="off" />
+          <span class="identity-group-selected" id="identity-group-selected" hidden></span>
+          <div class="identity-group-results" id="identity-group-results" hidden></div>
+        </div>
+
+        <p class="identity-error" id="identity-error" hidden></p>
+
+        <button type="submit" class="btn btn-primary" id="identity-submit">Continuar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: Panel de administración ===================== -->
+  <div class="modal-overlay" id="admin-modal" hidden>
+    <div class="modal modal-wide modal-admin" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <button type="button" class="icon-btn admin-modal-close" id="admin-modal-close" title="Cerrar" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 id="admin-modal-title"><i class="fa-solid fa-user-shield"></i> Panel de administración</h3>
+
+      <div id="admin-password-step">
+        <p>Ingresa la contraseña de administración para ver los envíos de todos los profesores.</p>
+        <form id="admin-password-form" class="identity-form">
+          <div class="field">
+            <label for="admin-password-input">Contraseña</label>
+            <input type="password" id="admin-password-input" autocomplete="off" />
+          </div>
+          <p class="identity-error" id="admin-password-error" hidden>Contraseña incorrecta.</p>
+          <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+      </div>
+
+      <div id="admin-loading-step" hidden class="admin-loading">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Conectando con Google y cargando envíos...</span>
+      </div>
+
+      <div id="admin-error-step" hidden class="admin-loading admin-error-step">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="admin-error-message">No se pudo conectar.</span>
+        <button type="button" class="btn btn-primary btn-sm" id="admin-retry">Reintentar</button>
+      </div>
+
+      <div id="admin-table-step" hidden>
+        <div class="admin-table-toolbar">
+          <input type="text" id="admin-search" placeholder="Buscar por profesor, grupo o curso..." />
+          <button type="button" class="btn btn-icon" id="admin-logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión admin
+          </button>
+        </div>
+        <div class="example-table-wrap admin-table-wrap">
+          <table class="example-table">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Tipo</th><th>Profesor</th><th>Grupo</th><th>Curso</th><th>Horario</th><th>Excel</th><th>Progreso</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body"></tbody>
+          </table>
+        </div>
+        <p class="admin-empty-state" id="admin-empty-state" hidden>No hay envíos que coincidan con tu búsqueda.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== LIBRERÍAS EXTERNAS (CDN) ===================== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -422,9 +509,13 @@
   <script src="js/storage.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/toast.js"></script>
+  <script src="js/groupsData.js"></script>
+  <script src="js/teacherIdentity.js"></script>
+  <script src="js/exporters.js"></script>
+  <script src="js/driveSync.js"></script>
+  <script src="js/adminPanel.js"></script>
   <script src="js/blocks.js"></script>
   <script src="js/planForm.js"></script>
-  <script src="js/exporters.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/app.js"></script>
 </body>

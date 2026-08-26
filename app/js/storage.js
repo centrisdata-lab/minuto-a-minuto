@@ -19,6 +19,7 @@
 
 const STORAGE_KEYS = {
   TEACHER_ID: 'mam_teacher_id',
+  TEACHER_IDENTITY: 'mam_teacher_identity', // { name, group, courseCode, courseLabel, schedule }
   ACTIVE_PLAN: 'mam_active_plan', // única planeación activa de este navegador
   THEME: 'mam_theme',
 };
@@ -108,6 +109,16 @@ const Storage = {
 
   setTheme(theme) {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
+  },
+
+  /** Identidad del profesor (nombre + grupo/curso elegido), o null si aún no se ha configurado en este navegador. */
+  getTeacherIdentity() {
+    const raw = localStorage.getItem(STORAGE_KEYS.TEACHER_IDENTITY);
+    return safeParse(raw, null);
+  },
+
+  setTeacherIdentity(identity) {
+    localStorage.setItem(STORAGE_KEYS.TEACHER_IDENTITY, JSON.stringify(identity));
   },
 };
 

@@ -1133,6 +1133,120 @@ img { max-width: 100%; display: block; }
 .modal-actions { display: flex; gap: var(--space-3); justify-content: center; }
 .modal-actions .btn { flex: 1; justify-content: center; }
 
+.modal-wide { max-width: 520px; text-align: left; }
+.modal-wide h3 { text-align: center; }
+.modal-wide > p { text-align: center; }
+.modal-icon-brand { background: rgba(35, 87, 156, 0.1); color: var(--color-navy-600); }
+
+/* ---------- Identidad del profesor: badge en el header ---------- */
+.identity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.identity-badge:hover { border-color: var(--color-cyan-500); color: var(--color-cyan-600); }
+
+/* ---------- Formulario de identidad (nombre + selector de grupo con buscador) ---------- */
+.identity-form { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
+.identity-group-field { position: relative; }
+.identity-group-selected {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-cyan-600);
+  background: rgba(33, 150, 214, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.identity-group-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+.identity-group-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  gap: 2px;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.identity-group-item:last-child { border-bottom: none; }
+.identity-group-item:hover { background: var(--bg-surface-alt); }
+.identity-group-course { font-size: 0.86rem; font-weight: 600; color: var(--text-primary); }
+.identity-group-meta { font-size: 0.76rem; color: var(--text-muted); }
+.identity-group-empty { padding: 12px; font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+.identity-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ---------- Panel de administración ---------- */
+.modal-admin { max-width: 900px; position: relative; }
+.admin-modal-close { position: absolute; top: var(--space-4); right: var(--space-4); }
+.modal-admin h3 { text-align: left; display: flex; align-items: center; gap: 8px; }
+.modal-admin #admin-password-step > p { text-align: left; }
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+.admin-loading i { font-size: 1.6rem; color: var(--color-cyan-500); }
+.admin-error-step i { color: var(--color-danger); }
+.admin-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.admin-table-toolbar input {
+  flex: 1;
+  max-width: 320px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border-color-strong);
+  border-radius: var(--radius-sm);
+}
+.admin-table-wrap { max-height: 420px; overflow-y: auto; }
+.admin-link { color: var(--color-cyan-600); font-weight: 600; white-space: nowrap; }
+.admin-link-empty { color: var(--text-muted); }
+.admin-empty-state { text-align: center; color: var(--text-muted); padding: var(--space-5) 0; margin: 0; }
+
 /* ==========================================================================
    FOOTER
    ========================================================================== */

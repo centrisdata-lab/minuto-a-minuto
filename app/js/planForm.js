@@ -437,13 +437,15 @@ const PlanForm = (() => {
   }
 
   /**
-   * Punto de integración con el backend (Frente B, pendiente de credenciales
-   * de Google Drive / panel admin). Por ahora guarda el envío en una clave
-   * de localStorage separada, simulando la tabla que leerá el panel admin.
-   * TODO: reemplazar por un POST real cuando Drive/admin estén conectados.
+   * Registra el envío localmente (respaldo/cache, y lo que hoy usa
+   * localStorage['mam_submissions']) y, si es posible, lo sincroniza con
+   * Google Drive real: sube el Excel del plan a la carpeta compartida y
+   * agrega una fila al Sheet central que lee el panel admin (ver
+   * driveSync.js). Si Drive falla (sin conexión, permiso rechazado, etc.)
+   * el envío local ya quedó guardado igual — no se pierde el trabajo del
+   * profesor, solo no llega al panel admin hasta que reintente.
    */
-  function submitToBackend(payload) {
-    console.info('[submitToBackend] TODO: conectar con backend real.', payload);
+  async function submitToBackend(payload) {
     try {
       const key = 'mam_submissions';
       const existing = JSON.parse(localStorage.getItem(key) || '[]');
@@ -452,32 +454,81 @@ const PlanForm = (() => {
     } catch (e) {
       console.error('No se pudo registrar el envío localmente.', e);
     }
+
+    if (typeof DriveSync === 'undefined') return { synced: false };
+
+    try {
+      const identity = TeacherIdentity.getIdentity() || {};
+      const blob = Exporters.exportXlsxBlob(payload.plan);
+      let driveLink = '';
+      if (blob) {
+        const fileName = Exporters.buildFileName(payload.plan.courseName, 'xlsx');
+        const uploaded = await DriveSync.uploadExcelToDrive(blob, fileName);
+        driveLink = uploaded.webViewLink || '';
+      }
+      await DriveSync.appendSubmissionRow([
+        new Date().toISOString(),
+        payload.type,
+        identity.name || '',
+        identity.group || '',
+        identity.courseLabel || '',
+        identity.schedule || '',
+        driveLink,
+        `${payload.plan.progress || 0}%`,
+      ]);
+      return { synced: true };
+    } catch (e) {
+      console.error('No se pudo sincronizar el envío con Google Drive.', e);
+      return { synced: false, error: e };
+    }
   }
 
-  function handleSubmitPlan() {
+  async function handleSubmitPlan() {
     if (!els.courseName.value.trim()) {
       Toast.warning('Escribe el nombre del curso antes de enviar.');
       els.courseName.focus();
       return;
     }
+    els.btnSubmitPlan.disabled = true;
+    const originalLabel = els.btnSubmitPlan.innerHTML;
+    els.btnSubmitPlan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
+
+    const result = await submitToBackend({ type: 'plan', plan: buildPlanObject() });
+
+    els.btnSubmitPlan.innerHTML = originalLabel;
+    els.btnSubmitPlan.disabled = false;
     submissionState.submitted = true;
     submissionState.submittedAt = new Date().toISOString();
     applySubmissionState({ ...submissionState });
-
     save();
-    submitToBackend({ type: 'plan', plan: buildPlanObject() });
-    Toast.success('Minuto a Minuto enviado. Ahora puedes registrar la retroalimentación al terminar la clase.');
+
+    if (result.synced) {
+      Toast.success('Minuto a Minuto enviado y sincronizado con Drive. Ahora puedes registrar la retroalimentación al terminar la clase.');
+    } else {
+      Toast.warning('Se guardó tu Minuto a Minuto, pero no se pudo sincronizar con Drive (revisa tu conexión o permisos de Google). Puedes seguir usando la app normalmente.');
+    }
     els.feedbackCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function handleSubmitFeedback() {
+  async function handleSubmitFeedback() {
+    els.btnSubmitFeedback.disabled = true;
+    const originalLabel = els.btnSubmitFeedback.innerHTML;
+    els.btnSubmitFeedback.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
+
+    const result = await submitToBackend({ type: 'feedback', plan: buildPlanObject() });
+
+    els.btnSubmitFeedback.innerHTML = originalLabel;
+    els.btnSubmitFeedback.disabled = false;
     submissionState.feedbackSubmitted = true;
     submissionState.feedbackSubmittedAt = new Date().toISOString();
     applySubmissionState({ ...submissionState });
-
     save();
-    submitToBackend({ type: 'feedback', plan: buildPlanObject() });
-    Toast.success('Retroalimentación enviada. ¡Gracias!');
+
+    if (result.synced) {
+      Toast.success('Retroalimentación enviada y sincronizada con Drive. ¡Gracias!');
+    } else {
+      Toast.warning('Se guardó tu retroalimentación, pero no se pudo sincronizar con Drive (revisa tu conexión o permisos de Google).');
+    }
   }
 
   return {

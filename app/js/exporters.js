@@ -41,49 +41,67 @@ const Exporters = (() => {
     return `${base}_${safeCourse}_${timestampSuffix()}.${extension}`;
   }
 
+  /** Construye el workbook de SheetJS a partir de un plan. Uso interno, compartido por exportXlsx y exportXlsxBlob. */
+  function buildXlsxWorkbook(plan) {
+    const rows = [];
+    rows.push(['MINUTO A MINUTO']);
+    rows.push([]);
+    rows.push(['Nombre del curso:', plan.courseName || '']);
+    rows.push(['Hora de inicio de la clase:', plan.startTime || '']);
+    rows.push([]);
+    rows.push(['(Diapositiva)', '(Bloque)', '(Duración)', '(Hora Inicio)', '(Actividad)', '(Recursos/Links)', '(Responsable)']);
+    flattenBlocks(plan.blocks).forEach((b, i) => {
+      rows.push([i + 1, b.name || '', b.duration || '', b.start || '', b.activity || '', b.resources || '', b.responsible || '']);
+    });
+
+    const merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+    const notes = collectBlockNotes(plan.blocks);
+    if (notes.length) {
+      rows.push([]);
+      notes.forEach((note) => {
+        const noteRow = rows.length;
+        rows.push([`Nota: ${note}`]);
+        merges.push({ s: { r: noteRow, c: 0 }, e: { r: noteRow, c: 6 } });
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 26 }, { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 24 }, { wch: 16 },
+    ];
+    ws['!merges'] = merges;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Minuto a Minuto');
+    return wb;
+  }
+
   function exportXlsx(plan) {
     if (typeof XLSX === 'undefined') {
       Toast.error('No se pudo cargar el módulo de Excel. Verifica tu conexión a internet.');
       return;
     }
     try {
-      const rows = [];
-      rows.push(['MINUTO A MINUTO']);
-      rows.push([]);
-      rows.push(['Nombre del curso:', plan.courseName || '']);
-      rows.push(['Hora de inicio de la clase:', plan.startTime || '']);
-      rows.push([]);
-      rows.push(['(Diapositiva)', '(Bloque)', '(Duración)', '(Hora Inicio)', '(Actividad)', '(Recursos/Links)', '(Responsable)']);
-      flattenBlocks(plan.blocks).forEach((b, i) => {
-        rows.push([i + 1, b.name || '', b.duration || '', b.start || '', b.activity || '', b.resources || '', b.responsible || '']);
-      });
-
-      const merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
-      const notes = collectBlockNotes(plan.blocks);
-      if (notes.length) {
-        rows.push([]);
-        notes.forEach((note) => {
-          const noteRow = rows.length;
-          rows.push([`Nota: ${note}`]);
-          merges.push({ s: { r: noteRow, c: 0 }, e: { r: noteRow, c: 6 } });
-        });
-      }
-
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 14 }, { wch: 26 }, { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 24 }, { wch: 16 },
-      ];
-      ws['!merges'] = merges;
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Minuto a Minuto');
-
+      const wb = buildXlsxWorkbook(plan);
       const fileName = buildFileName(plan.courseName, 'xlsx');
       XLSX.writeFile(wb, fileName);
       Toast.success('Archivo Excel descargado correctamente.');
     } catch (e) {
       console.error(e);
       Toast.error('Ocurrió un error al generar el Excel.');
+    }
+  }
+
+  /** Genera el mismo Excel que exportXlsx, pero como Blob en memoria en vez de forzar una descarga — usado para subirlo a Drive. Devuelve null si SheetJS no está disponible o falla. */
+  function exportXlsxBlob(plan) {
+    if (typeof XLSX === 'undefined') return null;
+    try {
+      const wb = buildXlsxWorkbook(plan);
+      const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      return new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    } catch (e) {
+      console.error('No se pudo generar el Excel para subir a Drive.', e);
+      return null;
     }
   }
 
@@ -174,7 +192,7 @@ const Exporters = (() => {
     }
   }
 
-  return { exportXlsx, exportPdf };
+  return { exportXlsx, exportPdf, exportXlsxBlob, buildFileName };
 })();
 
 window.Exporters = Exporters;
