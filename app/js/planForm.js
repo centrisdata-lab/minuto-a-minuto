@@ -105,6 +105,22 @@ const PlanForm = (() => {
     return (containers || []).flatMap((c) => c.subBlocks || []);
   }
 
+  /**
+   * Completa con los bloques estándar que falten al final un plan que quedó
+   * con menos de los 7 bloques de la plantilla (por ejemplo, guardado
+   * durante una versión anterior de la app que aún no tenía todos, o si el
+   * profesor ya renombró alguno). Se completa por POSICIÓN, no por nombre
+   * (renombrar un bloque no debe hacer que se agregue un duplicado): si el
+   * plan ya tiene N bloques, se agregan los bloques estándar de la
+   * plantilla desde la posición N en adelante. Los bloques existentes del
+   * profesor nunca se tocan ni se reordenan.
+   */
+  function fillMissingDefaultBlocks(containers) {
+    if (containers.length >= defaultBlocks().length) return containers;
+    const missing = defaultBlocks().slice(containers.length);
+    return [...containers, ...missing];
+  }
+
   /* ---------------------------------------------------------------------
      Sección "Durante la clase" (checklist)
      --------------------------------------------------------------------- */
@@ -229,6 +245,11 @@ const PlanForm = (() => {
       // estándar de 7 bloques sin perder ningún trabajo real.
       if (hasNoRealBlockContent(getFlatFromContainers(blocksToLoad))) {
         blocksToLoad = defaultBlocks();
+      } else {
+        // Si hay contenido real pero faltan bloques estándar (por ejemplo,
+        // guardado durante una versión anterior con menos de 7), se
+        // completan al final sin tocar los que ya existen.
+        blocksToLoad = fillMissingDefaultBlocks(blocksToLoad);
       }
 
       BlocksManager.loadBlocks(blocksToLoad);
