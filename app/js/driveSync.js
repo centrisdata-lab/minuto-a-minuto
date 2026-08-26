@@ -16,6 +16,10 @@ const DriveSync = (() => {
   const DRIVE_FOLDER_ID = '1_1d5udFinADGf3K5gsdC0keBByNIv09s';
   const SHEET_ID = '1EUONe3tmwdc-cbYAUkFfByysm9GUgn0hRRkv-NSyZxU';
   const SHEET_RANGE = 'Envios!A1:H1';
+  // Restringida en Google Cloud Console a solo Google Sheets API y solo
+  // peticiones desde minuto-a-minuto-fimlm.netlify.app — usada solo para
+  // LEER el Sheet (que es público-solo-lectura), nunca para escribir.
+  const SHEETS_API_KEY = 'AIzaSyBnCVHTxOUzxRHYT9ubt2qXZvPZMQjc3_Y';
   const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
 
   let tokenClient = null;
@@ -139,11 +143,19 @@ const DriveSync = (() => {
     return res.json();
   }
 
-  /** Lee todas las filas del Sheet central (usado por el panel admin). Devuelve un array de arrays (sin la fila de encabezado). */
+  /**
+   * Lee todas las filas del Sheet central (usado por el panel admin), vía
+   * API Key en vez de OAuth: el Sheet está configurado como "Cualquier
+   * persona con el enlace puede ver" (solo lectura), así que no hace falta
+   * pedirle autorización de Google al administrador — la contraseña simple
+   * del panel es suficiente. La API Key está restringida (en Google Cloud
+   * Console) a solo Google Sheets API y solo peticiones desde este sitio,
+   * así que exponerla en el código del navegador no da acceso a nada más.
+   * Devuelve un array de arrays (sin la fila de encabezado).
+   */
   async function fetchAllSubmissions() {
-    const token = await ensureAuthorized();
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Envios!A2:H1000`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Envios!A2:H1000?key=${SHEETS_API_KEY}`;
+    const res = await fetch(url);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`Sheets respondió ${res.status} al leer los envíos. ${text}`);
