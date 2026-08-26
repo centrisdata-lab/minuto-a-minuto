@@ -54,22 +54,24 @@ const PlanForm = (() => {
 
   /**
    * Bloques con los que arranca toda planeación nueva (y "Limpiar formulario").
-   * Cada uno de los 7 bloques estándar de una clase de 90 minutos se envuelve
-   * en su propio bloque contenedor con un solo sub-bloque adentro; el profesor
-   * puede editar nombre/duración, agregar más sub-bloques, borrar o reordenar,
-   * y solo necesita completar Recursos/Links y Responsable en cada uno.
+   * Solo el Bloque 1 viene con su contenido ya definido: 3 sub-bloques que
+   * suman 10 minutos (Saludo y bienvenida 2 min, Agenda de clase 2 min,
+   * Recordando lo aprendido 6 min). El profesor puede seguir editando,
+   * agregando o quitando sub-bloques ahí igual que en cualquier otro bloque.
+   * Los bloques 2 a 7 arrancan vacíos (un sub-bloque en blanco cada uno),
+   * a la espera de que se definan más adelante.
    */
   function defaultBlocks() {
-    const flat = [
+    const block1SubBlocks = [
       { name: 'Saludo y bienvenida', duration: '00:02', activity: '', resources: '', responsible: '' },
-      { name: 'Agenda de clase', duration: '00:01', activity: '', resources: '', responsible: '' },
-      { name: 'Recordemos lo aprendido', duration: '00:05', activity: '', resources: '', responsible: '' },
-      { name: 'Desarrollo del tema', duration: '00:40', activity: '', resources: '', responsible: '' },
-      { name: 'Práctica', duration: '00:25', activity: '', resources: '', responsible: '' },
-      { name: 'Pausa activa', duration: '00:07', activity: '', resources: '', responsible: '' },
-      { name: 'Preguntas e inquietudes', duration: '00:10', activity: '', resources: '', responsible: '' },
+      { name: 'Agenda de clase', duration: '00:02', activity: '', resources: '', responsible: '' },
+      { name: 'Recordando lo aprendido', duration: '00:06', activity: '', resources: '', responsible: '' },
     ];
-    return flat.map((subBlock) => ({ subBlocks: [subBlock] }));
+    const emptyBlocksCount = 6; // Bloques 2 a 7, sin definir todavía
+    return [
+      { subBlocks: block1SubBlocks },
+      ...Array.from({ length: emptyBlocksCount }, () => ({ subBlocks: [{}] })),
+    ];
   }
 
   /**
