@@ -20,6 +20,10 @@ const PlanForm = (() => {
       form: document.getElementById('plan-form'),
       courseName: document.getElementById('plan-course-name'),
       startTime: document.getElementById('plan-start-time'),
+      startTimeHour: document.getElementById('start-time-hour'),
+      startTimeMinute: document.getElementById('start-time-minute'),
+      startTimeAm: document.getElementById('start-time-am'),
+      startTimePm: document.getElementById('start-time-pm'),
       saveStatus: document.getElementById('save-status'),
       recommendationsNotes: document.getElementById('recommendations-notes'),
       feedbackImprove: document.getElementById('feedback-improve'),
@@ -46,6 +50,7 @@ const PlanForm = (() => {
       BlocksManager.recalculateStartTimes();
       debouncedSave();
     });
+    initStartTimePicker();
 
     document.getElementById('btn-add-block').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
@@ -60,6 +65,55 @@ const PlanForm = (() => {
     els.btnSubmitFeedback.addEventListener('click', handleSubmitFeedback);
 
     loadOrCreate();
+  }
+
+  /* ---------------------------------------------------------------------
+     Selector de hora de inicio: 3 controles simples (hora 1-12, minutos,
+     AM/PM) en vez del <input type="time"> nativo, cuyo formato 12h/24h
+     depende de la configuración del navegador/sistema de cada profesor.
+     Los 3 controles solo actualizan un <input type="hidden"> con el valor
+     real en formato "HH:MM" (24h) — el mismo que ya leen blocks.js y el
+     resto de la app — para no tocar la lógica de cálculo de horas.
+     --------------------------------------------------------------------- */
+  function initStartTimePicker() {
+    const updateFromPicker = () => {
+      let hour = parseInt(els.startTimeHour.value, 10);
+      const minute = els.startTimeMinute.value;
+      const isPm = els.startTimePm.classList.contains('active');
+      if (isPm && hour !== 12) hour += 12;
+      if (!isPm && hour === 12) hour = 0;
+      els.startTime.value = `${String(hour).padStart(2, '0')}:${minute}`;
+      els.startTime.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    els.startTimeHour.addEventListener('change', updateFromPicker);
+    els.startTimeMinute.addEventListener('change', updateFromPicker);
+    [els.startTimeAm, els.startTimePm].forEach((btn) => {
+      btn.addEventListener('click', () => {
+        els.startTimeAm.classList.toggle('active', btn === els.startTimeAm);
+        els.startTimePm.classList.toggle('active', btn === els.startTimePm);
+        updateFromPicker();
+      });
+    });
+  }
+
+  /**
+   * Refleja en los 3 controles (hora/minutos/AM-PM) el valor 24h ya
+   * guardado en el hidden input — usado al cargar un plan existente. Los
+   * minutos se redondean al múltiplo de 5 más cercano porque el <select>
+   * solo ofrece esos pasos (un plan guardado antes de este selector podía
+   * tener cualquier minuto).
+   */
+  function syncStartTimePickerFromValue() {
+    const [h, m] = (els.startTime.value || '09:00').split(':').map(Number);
+    const isPm = h >= 12;
+    let hour12 = h % 12;
+    if (hour12 === 0) hour12 = 12;
+    const roundedMinute = Math.round((m || 0) / 5) * 5 % 60;
+    els.startTimeHour.value = String(hour12);
+    els.startTimeMinute.value = String(roundedMinute).padStart(2, '0');
+    els.startTimeAm.classList.toggle('active', !isPm);
+    els.startTimePm.classList.toggle('active', isPm);
   }
 
   /** Header-botón de una card colapsable: alterna `hidden` del body + aria-expanded + chevron. */
@@ -248,6 +302,7 @@ const PlanForm = (() => {
     }
     els.courseName.value = '';
     els.startTime.value = '09:00';
+    syncStartTimePickerFromValue();
     BlocksManager.loadBlocks(defaultBlocks());
     loadRecommendationsData(null);
     loadFeedbackData(null);
@@ -261,6 +316,7 @@ const PlanForm = (() => {
       planCreatedAt = plan.createdAt || null;
       els.courseName.value = plan.courseName || '';
       els.startTime.value = plan.startTime || '09:00';
+      syncStartTimePickerFromValue();
 
       // Migra planes guardados en la forma plana antigua (antes de la
       // jerarquía de dos niveles) a bloques contenedores con sub-bloques.

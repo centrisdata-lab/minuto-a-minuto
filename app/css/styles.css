@@ -561,6 +561,50 @@ img { max-width: 100%; display: block; }
   margin-bottom: var(--space-4);
 }
 
+/* ---------- Selector de hora de inicio: hora + minutos + AM/PM ---------- */
+.time-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--border-color-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  background: var(--bg-surface);
+}
+.time-picker select {
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 6px 2px;
+  cursor: pointer;
+}
+.time-picker select:focus { outline: none; }
+.time-picker-colon { font-weight: 700; color: var(--text-muted); }
+.time-picker-ampm {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-surface-alt);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  margin-left: auto;
+}
+.time-ampm-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.time-ampm-btn.active { background: var(--color-cyan-500); color: #fff; }
+
 /* Nota de ejemplo/ayuda contextual, presente en cada una de las 3 secciones */
 .example-note {
   display: flex;

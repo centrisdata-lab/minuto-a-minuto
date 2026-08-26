@@ -145,9 +145,28 @@
                   <label for="plan-course-name">Nombre del curso</label>
                   <input type="text" id="plan-course-name" name="planCourseName" placeholder="Ej. Despertar Humano, Sistemas..." maxlength="100" />
                 </div>
-                <div class="field field-inline" style="max-width:220px;">
-                  <label for="plan-start-time">Hora de inicio de la clase</label>
-                  <input type="time" id="plan-start-time" name="planStartTime" value="09:00" />
+                <div class="field field-inline" style="max-width:260px;">
+                  <label for="start-time-hour">Hora de inicio de la clase</label>
+                  <div class="time-picker">
+                    <select id="start-time-hour" aria-label="Hora">
+                      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                      <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                      <option value="7">7</option><option value="8">8</option><option value="9" selected>9</option>
+                      <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    </select>
+                    <span class="time-picker-colon">:</span>
+                    <select id="start-time-minute" aria-label="Minutos">
+                      <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option>
+                      <option value="15">15</option><option value="20">20</option><option value="25">25</option>
+                      <option value="30">30</option><option value="35">35</option><option value="40">40</option>
+                      <option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                    </select>
+                    <div class="time-picker-ampm" role="radiogroup" aria-label="AM o PM">
+                      <button type="button" class="time-ampm-btn active" id="start-time-am" data-period="AM">AM</button>
+                      <button type="button" class="time-ampm-btn" id="start-time-pm" data-period="PM">PM</button>
+                    </div>
+                  </div>
+                  <input type="hidden" id="plan-start-time" name="planStartTime" value="09:00" />
                 </div>
                 <div class="field field-inline" style="max-width:200px;">
                   <label for="plan-duration-total">
