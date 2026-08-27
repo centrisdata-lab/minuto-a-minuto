@@ -189,11 +189,6 @@ img { max-width: 100%; display: block; }
   gap: var(--space-3);
 }
 
-.brand-logo {
-  height: 52px;
-  width: auto;
-}
-
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
 
 .brand-title {
@@ -1307,7 +1302,6 @@ img { max-width: 100%; display: block; }
   gap: var(--space-4);
   flex-wrap: wrap;
 }
-.footer-logo { height: 34px; }
 .footer-inner p { color: #52607a; font-size: 0.8rem; }
 
 /* ==========================================================================
