@@ -39,29 +39,9 @@ const App = (() => {
       exampleToggle.querySelector('span').textContent = isOpen ? 'Ocultar ejemplo' : 'Ver ejemplo';
     });
 
-    const toggle = document.getElementById('btn-download-toggle');
-    const menu = document.getElementById('download-menu');
-    toggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = menu.classList.toggle('open');
-      toggle.setAttribute('aria-expanded', String(isOpen));
-    });
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('#download-dropdown')) {
-        menu.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-    });
-
-    document.getElementById('btn-download-xlsx').addEventListener('click', () => {
-      PlanForm.save();
-      Exporters.exportXlsx(PlanForm.getCurrentPlanObject());
-      menu.classList.remove('open');
-    });
-    document.getElementById('btn-download-pdf').addEventListener('click', () => {
+    document.getElementById('btn-download-image').addEventListener('click', () => {
       PlanForm.save();
       Exporters.exportPdf(PlanForm.getCurrentPlanObject());
-      menu.classList.remove('open');
     });
   }
 

@@ -56,7 +56,6 @@ const PlanForm = (() => {
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
 
     document.getElementById('btn-clear-form').addEventListener('click', handleClearForm);
-    document.getElementById('btn-duplicate-plan').addEventListener('click', handleExportCopy);
 
     initCollapsibleSections();
     initRecommendationsSection();
@@ -432,18 +431,6 @@ const PlanForm = (() => {
     resetToEmptyPlan({ keepId: true });
     save();
     Toast.info('Formulario reiniciado.');
-  }
-
-  /**
-   * Descarga una copia en Excel de la planeación actual (no crea una segunda
-   * planeación editable: este navegador solo mantiene una activa a la vez).
-   */
-  function handleExportCopy() {
-    save();
-    const current = Storage.getActivePlan();
-    if (!current) return;
-    Exporters.exportXlsx(current);
-    Toast.info('Se descargó una copia en Excel. Sigues editando la misma planeación.');
   }
 
   function getCurrentPlanObject() {

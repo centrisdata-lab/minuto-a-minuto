@@ -1,9 +1,9 @@
 /**
  * exporters.js
- * Exportación del Minuto a Minuto (bloques + sus notas) a Excel (.xlsx) y a
- * PDF (listo para imprimir/compartir). Las recomendaciones generales y la
- * retroalimentación de "Después de la clase" son de uso interno del
- * profesor y no se incluyen en los archivos descargables.
+ * Exportación del Minuto a Minuto (bloques + sus notas) a Excel (.xlsx), y a
+ * PDF (bloques + recomendaciones generales, listo para imprimir/compartir —
+ * ver exportPdf). La retroalimentación de "Después de la clase" es de uso
+ * interno del profesor y no se incluye en ningún archivo descargable.
  * Depende de SheetJS (XLSX) y jsPDF + autotable, cargados por CDN en index.html.
  */
 
@@ -170,9 +170,10 @@ const Exporters = (() => {
         },
       });
 
+      let y = doc.lastAutoTable.finalY + 20;
+
       const notes = collectBlockNotes(plan.blocks);
       if (notes.length) {
-        let y = doc.lastAutoTable.finalY + 20;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(30, 30, 30);
@@ -180,6 +181,24 @@ const Exporters = (() => {
           const lines = doc.splitTextToSize(`Nota: ${note}`, pageWidth - 60);
           doc.text(lines, 30, y);
           y += lines.length * 12 + 6;
+        });
+      }
+
+      const recommendations = (plan.recommendations && plan.recommendations.notes || '').trim();
+      if (recommendations) {
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...navy);
+        doc.text('Recomendaciones generales', 30, y);
+        y += 16;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(30, 30, 30);
+        recommendations.split('\n').forEach((line) => {
+          const lines = doc.splitTextToSize(line || ' ', pageWidth - 60);
+          doc.text(lines, 30, y);
+          y += lines.length * 12 + 4;
         });
       }
 
