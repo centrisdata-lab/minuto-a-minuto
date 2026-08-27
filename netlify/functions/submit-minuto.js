@@ -21,7 +21,14 @@ const crypto = require('crypto');
 const DRIVE_FOLDER_ID = '1_1d5udFinADGf3K5gsdC0keBByNIv09s';
 const SHEET_ID = '1EUONe3tmwdc-cbYAUkFfByysm9GUgn0hRRkv-NSyZxU';
 const SHEET_RANGE = 'Envios!A1:H1';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
+// "drive.file" (más restringido) solo da acceso a archivos que la propia
+// cuenta de servicio creó — no a carpetas preexistentes de otra cuenta
+// aunque se compartan como Editor. Como la carpeta de Drive ya existía
+// antes de crear la cuenta de servicio, se necesita el scope completo
+// "drive" para poder subir dentro de ella. El riesgo queda acotado porque
+// esta es una cuenta de servicio dedicada solo a esta app, sin acceso a
+// nada que no se le comparta explícitamente.
+const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets';
 
 function base64url(input) {
   return Buffer.from(input)
