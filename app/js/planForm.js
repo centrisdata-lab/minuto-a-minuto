@@ -464,7 +464,19 @@ const PlanForm = (() => {
     return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
   }
 
-  /** Refleja en la UI el estado guardado (`submitted`/`feedbackSubmitted`) de un plan: bloquea campos, muestra banners, revela la card de retroalimentación. */
+  /**
+   * Refleja en la UI el estado guardado (`submitted`/`feedbackSubmitted`) de
+   * un plan: bloquea campos y muestra banners si corresponde.
+   *
+   * El botón "Enviar Minuto a Minuto" está oculto por ahora (ver index.html,
+   * #btn-submit-plan) mientras no haya suficientes profesores agregados como
+   * "usuarios de prueba" en Google Cloud para autorizar el envío a Drive —
+   * así que `submitted` nunca se activa desde la UI hoy, y la card de
+   * retroalimentación queda siempre visible (ya no depende de un envío
+   * previo) para que el profesor pueda usarla igual que cualquier otra
+   * sección. Se conserva toda esta lógica de bloqueo por si se retoma el
+   * flujo de envío más adelante.
+   */
   function applySubmissionState(plan) {
     submissionState = {
       submitted: !!(plan && plan.submitted),
@@ -475,13 +487,11 @@ const PlanForm = (() => {
     const { submitted, submittedAt, feedbackSubmitted, feedbackSubmittedAt } = submissionState;
 
     els.recommendationsCard.classList.toggle('is-locked', submitted);
-    els.btnSubmitPlan.hidden = submitted;
     els.planSubmittedBanner.hidden = !submitted;
     els.planSubmittedBanner.querySelector('.js-submitted-at').textContent = formatSubmittedAt(submittedAt);
     setFormFieldsDisabled(els.recommendationsCard, submitted);
     BlocksManager.setLocked(submitted);
 
-    els.feedbackCard.hidden = !submitted;
     els.feedbackCard.classList.toggle('is-locked', feedbackSubmitted);
     els.btnSubmitFeedback.hidden = feedbackSubmitted;
     els.feedbackSubmittedBanner.hidden = !feedbackSubmitted;
