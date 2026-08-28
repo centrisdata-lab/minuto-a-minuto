@@ -16,6 +16,7 @@ const AdminPanel = (() => {
 
   let els = {};
   let allSubmissions = [];
+  let currentDetailId = null;
 
   function cacheEls() {
     els = {
@@ -38,6 +39,7 @@ const AdminPanel = (() => {
       errorMessage: document.getElementById('admin-error-message'),
       detailBack: document.getElementById('admin-detail-back'),
       detailBody: document.getElementById('admin-detail-body'),
+      detailDelete: document.getElementById('admin-detail-delete'),
     };
   }
 
@@ -54,11 +56,15 @@ const AdminPanel = (() => {
     els.logoutBtn.addEventListener('click', logout);
     els.retryBtn.addEventListener('click', loadSubmissions);
     els.tableBody.addEventListener('click', (e) => {
-      const btn = e.target.closest('.js-view-detail');
-      if (!btn) return;
-      showDetail(btn.dataset.id);
+      const viewBtn = e.target.closest('.js-view-detail');
+      if (viewBtn) { showDetail(viewBtn.dataset.id); return; }
+      const deleteBtn = e.target.closest('.js-delete-submission');
+      if (deleteBtn) handleDelete(deleteBtn.dataset.id);
     });
     els.detailBack.addEventListener('click', () => showStep('table'));
+    els.detailDelete.addEventListener('click', () => {
+      if (currentDetailId) handleDelete(currentDetailId, { fromDetail: true });
+    });
   }
 
   function hasAdminSession() {
@@ -141,7 +147,10 @@ const AdminPanel = (() => {
         <td>${Utils.escapeHtml(s.group_code || '')}</td>
         <td>${Utils.escapeHtml(s.course_label || s.course_name || '')}</td>
         <td>${Utils.escapeHtml(s.start_time || '')}</td>
-        <td><button type="button" class="btn btn-icon js-view-detail" data-id="${Utils.escapeHtml(s.id)}"><i class="fa-solid fa-eye"></i> Ver detalle</button></td>
+        <td class="admin-table-actions">
+          <button type="button" class="btn btn-icon js-view-detail" data-id="${Utils.escapeHtml(s.id)}"><i class="fa-solid fa-eye"></i> Ver detalle</button>
+          <button type="button" class="icon-btn icon-btn-danger js-delete-submission" data-id="${Utils.escapeHtml(s.id)}" title="Eliminar envío" aria-label="Eliminar envío"><i class="fa-solid fa-trash"></i></button>
+        </td>
       </tr>
     `).join('');
   }
@@ -149,8 +158,35 @@ const AdminPanel = (() => {
   function showDetail(id) {
     const submission = allSubmissions.find((s) => String(s.id) === String(id));
     if (!submission) return;
+    currentDetailId = id;
     els.detailBody.innerHTML = renderDetailHtml(submission);
     showStep('detail');
+  }
+
+  /** Pide confirmación y elimina un envío, tanto desde la fila de la tabla como desde el botón de la vista de detalle. */
+  async function handleDelete(id, { fromDetail = false } = {}) {
+    const submission = allSubmissions.find((s) => String(s.id) === String(id));
+    const label = submission ? `de ${submission.teacher_name || 'este profesor'}` : '';
+    const confirmed = await ConfirmModal.ask({
+      title: 'Eliminar envío',
+      message: `Se eliminará permanentemente el envío ${label}. Esta acción no se puede deshacer.`,
+      acceptLabel: 'Sí, eliminar',
+    });
+    if (!confirmed) return;
+
+    try {
+      await SubmissionsApi.deleteSubmission(id);
+      allSubmissions = allSubmissions.filter((s) => String(s.id) !== String(id));
+      Toast.success('Envío eliminado.');
+      if (fromDetail) {
+        currentDetailId = null;
+        showStep('table');
+      }
+      renderRows(els.searchInput.value);
+    } catch (e) {
+      console.error('No se pudo eliminar el envío.', e);
+      Toast.error('No se pudo eliminar el envío. Revisa tu conexión e intenta de nuevo.');
+    }
   }
 
   /** Renderiza el `plan` completo (jsonb) de un envío: datos generales, bloques con sus sub-bloques, recomendaciones y retroalimentación. */

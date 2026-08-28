@@ -56,7 +56,22 @@ const SubmissionsApi = (() => {
     return res.json();
   }
 
-  return { submitPlan, fetchAllSubmissions };
+  /** Elimina un envío por su id (usado por el panel admin — requiere la policy de DELETE en Supabase). */
+  async function deleteSubmission(id) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Supabase respondió ${res.status} al eliminar. ${text}`);
+    }
+  }
+
+  return { submitPlan, fetchAllSubmissions, deleteSubmission };
 })();
 
 window.SubmissionsApi = SubmissionsApi;

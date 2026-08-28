@@ -1211,7 +1211,11 @@ img { max-width: 100%; display: block; }
 .admin-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  /* Por debajo de .modal-overlay (z-index 200): el panel admin puede abrir
+     su propio modal de confirmación genérico (#confirm-modal, ej. al
+     eliminar un envío) y ese SIEMPRE debe quedar por encima, sin importar
+     el orden en que aparezcan en el DOM. */
+  z-index: 150;
   background: var(--bg-app);
   display: flex;
   flex-direction: column;
@@ -1284,6 +1288,7 @@ img { max-width: 100%; display: block; }
 }
 .admin-search-wrap input:focus { outline: none; border-color: var(--color-cyan-500); box-shadow: var(--shadow-focus); }
 .admin-table-step { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5); }
+.admin-table-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
 .admin-table-wrap { max-height: none; }
 .admin-link { color: var(--color-cyan-600); font-weight: 600; white-space: nowrap; }
 .admin-link-empty { color: var(--text-muted); }
@@ -1291,6 +1296,7 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Detalle de un envío (dentro del panel admin) ---------- */
 .admin-detail-step { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5); }
+.admin-detail-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
 .admin-detail-general {
   display: grid;
   grid-template-columns: 1fr 1fr;
