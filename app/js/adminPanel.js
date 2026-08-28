@@ -16,7 +16,7 @@ const AdminPanel = (() => {
 
   let els = {};
   let allSubmissions = [];
-  let currentDetailId = null;
+  let currentDetailGroup = null;
 
   function cacheEls() {
     els = {
@@ -39,7 +39,8 @@ const AdminPanel = (() => {
       errorMessage: document.getElementById('admin-error-message'),
       detailBack: document.getElementById('admin-detail-back'),
       detailBody: document.getElementById('admin-detail-body'),
-      detailDelete: document.getElementById('admin-detail-delete'),
+      detailDeletePlan: document.getElementById('admin-detail-delete-plan'),
+      detailDeleteFeedback: document.getElementById('admin-detail-delete-feedback'),
     };
   }
 
@@ -57,13 +58,18 @@ const AdminPanel = (() => {
     els.retryBtn.addEventListener('click', loadSubmissions);
     els.tableBody.addEventListener('click', (e) => {
       const viewBtn = e.target.closest('.js-view-detail');
-      if (viewBtn) { showDetail(viewBtn.dataset.id); return; }
-      const deleteBtn = e.target.closest('.js-delete-submission');
-      if (deleteBtn) handleDelete(deleteBtn.dataset.id);
+      if (viewBtn) showDetail(viewBtn.dataset.key);
     });
     els.detailBack.addEventListener('click', () => showStep('table'));
-    els.detailDelete.addEventListener('click', () => {
-      if (currentDetailId) handleDelete(currentDetailId, { fromDetail: true });
+    els.detailDeletePlan.addEventListener('click', () => {
+      if (currentDetailGroup && currentDetailGroup.planSubmission) {
+        handleDelete(currentDetailGroup.planSubmission.id, { fromDetail: true });
+      }
+    });
+    els.detailDeleteFeedback.addEventListener('click', () => {
+      if (currentDetailGroup && currentDetailGroup.feedbackSubmission) {
+        handleDelete(currentDetailGroup.feedbackSubmission.id, { fromDetail: true });
+      }
     });
   }
 
@@ -126,11 +132,54 @@ const AdminPanel = (() => {
     }
   }
 
+  /** Clave de agrupación: mismo profesor + mismo grupo = mismo informe. */
+  function groupKey(teacherName, groupCode) {
+    return `${String(teacherName || '').trim().toLowerCase()}||${String(groupCode || '').trim().toLowerCase()}`;
+  }
+
+  /**
+   * Agrupa los envíos planos de Supabase por profesor+grupo. Cada grupo se
+   * queda con el envío más reciente de cada `stage` (plan/feedback) — como
+   * `allSubmissions` ya viene ordenado created_at.desc, el primero de cada
+   * stage que aparece por grupo es el más reciente. Los envíos hechos antes
+   * de agregar la columna `stage` quedan como `stage: 'plan'` (default de
+   * la migración), así que siguen agrupándose correctamente.
+   */
+  function groupSubmissions(submissions) {
+    const groups = new Map();
+    submissions.forEach((s) => {
+      const key = groupKey(s.teacher_name, s.group_code);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          teacher_name: s.teacher_name,
+          group_code: s.group_code,
+          course_label: s.course_label,
+          schedule: s.schedule,
+          latestDate: s.created_at,
+          planSubmission: null,
+          feedbackSubmission: null,
+        });
+      }
+      const entry = groups.get(key);
+      if (s.stage === 'feedback') {
+        if (!entry.feedbackSubmission) entry.feedbackSubmission = s;
+      } else if (!entry.planSubmission) {
+        entry.planSubmission = s;
+      }
+      if (!entry.course_label && s.course_label) entry.course_label = s.course_label;
+      if (!entry.schedule && s.schedule) entry.schedule = s.schedule;
+      if (new Date(s.created_at) > new Date(entry.latestDate)) entry.latestDate = s.created_at;
+    });
+    return Array.from(groups.values());
+  }
+
   function renderRows(query) {
     const q = query.trim().toLowerCase();
+    const groups = groupSubmissions(allSubmissions);
     const filtered = !q
-      ? allSubmissions
-      : allSubmissions.filter((s) => [s.teacher_name, s.group_code, s.course_label, s.course_name]
+      ? groups
+      : groups.filter((g) => [g.teacher_name, g.group_code, g.course_label]
         .some((val) => String(val || '').toLowerCase().includes(q)));
 
     if (filtered.length === 0) {
@@ -140,30 +189,38 @@ const AdminPanel = (() => {
     }
     els.emptyState.hidden = true;
 
-    els.tableBody.innerHTML = filtered.map((s) => `
-      <tr>
-        <td>${Utils.escapeHtml(formatDate(s.created_at))}</td>
-        <td>${Utils.escapeHtml(s.teacher_name || '')}</td>
-        <td>${Utils.escapeHtml(s.group_code || '')}</td>
-        <td>${Utils.escapeHtml(s.course_label || s.course_name || '')}</td>
-        <td>${Utils.escapeHtml(s.start_time || '')}</td>
-        <td class="admin-table-actions">
-          <button type="button" class="btn btn-icon js-view-detail" data-id="${Utils.escapeHtml(s.id)}"><i class="fa-solid fa-eye"></i> Ver detalle</button>
-          <button type="button" class="icon-btn icon-btn-danger js-delete-submission" data-id="${Utils.escapeHtml(s.id)}" title="Eliminar envío" aria-label="Eliminar envío"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `).join('');
+    els.tableBody.innerHTML = filtered.map((g) => {
+      const statusBadge = g.planSubmission && g.feedbackSubmission
+        ? '<span class="admin-status-badge status-complete">Completo</span>'
+        : g.planSubmission
+          ? '<span class="admin-status-badge status-partial">Solo Minuto a Minuto</span>'
+          : '<span class="admin-status-badge status-partial">Solo retroalimentación</span>';
+      return `
+        <tr>
+          <td>${Utils.escapeHtml(formatDate(g.latestDate))}</td>
+          <td>${Utils.escapeHtml(g.teacher_name || '')}</td>
+          <td>${Utils.escapeHtml(g.group_code || '')}</td>
+          <td>${Utils.escapeHtml(g.course_label || '')}</td>
+          <td>${statusBadge}</td>
+          <td class="admin-table-actions">
+            <button type="button" class="btn btn-icon js-view-detail" data-key="${Utils.escapeHtml(g.key)}"><i class="fa-solid fa-eye"></i> Ver detalle</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  function showDetail(id) {
-    const submission = allSubmissions.find((s) => String(s.id) === String(id));
-    if (!submission) return;
-    currentDetailId = id;
-    els.detailBody.innerHTML = renderDetailHtml(submission);
+  function showDetail(key) {
+    const group = groupSubmissions(allSubmissions).find((g) => g.key === key);
+    if (!group) return;
+    currentDetailGroup = group;
+    els.detailBody.innerHTML = renderGroupDetailHtml(group);
+    els.detailDeletePlan.disabled = !group.planSubmission;
+    els.detailDeleteFeedback.disabled = !group.feedbackSubmission;
     showStep('detail');
   }
 
-  /** Pide confirmación y elimina un envío, tanto desde la fila de la tabla como desde el botón de la vista de detalle. */
+  /** Pide confirmación y elimina un envío puntual (plan o feedback), tanto desde la vista de detalle. */
   async function handleDelete(id, { fromDetail = false } = {}) {
     const submission = allSubmissions.find((s) => String(s.id) === String(id));
     const label = submission ? `de ${submission.teacher_name || 'este profesor'}` : '';
@@ -179,7 +236,7 @@ const AdminPanel = (() => {
       allSubmissions = allSubmissions.filter((s) => String(s.id) !== String(id));
       Toast.success('Envío eliminado.');
       if (fromDetail) {
-        currentDetailId = null;
+        currentDetailGroup = null;
         showStep('table');
       }
       renderRows(els.searchInput.value);
@@ -189,22 +246,37 @@ const AdminPanel = (() => {
     }
   }
 
-  /** Renderiza el `plan` completo (jsonb) de un envío: datos generales, bloques con sus sub-bloques, recomendaciones y retroalimentación. */
-  function renderDetailHtml(submission) {
-    const plan = submission.plan || {};
+  /**
+   * Combina el registro `stage:'plan'` y el registro `stage:'feedback'` del
+   * mismo profesor+grupo en un solo detalle. Compatibilidad retroactiva:
+   * los envíos hechos antes de separar los flujos ya traían el feedback
+   * embebido dentro del mismo registro plan (`plan.feedback`) — si no hay
+   * un registro `feedback` separado, se usa ese como respaldo.
+   */
+  function renderGroupDetailHtml(group) {
+    const planSub = group.planSubmission;
+    const feedbackSub = group.feedbackSubmission;
+    const plan = planSub ? (planSub.plan || {}) : {};
     const blocks = plan.blocks || [];
+    const feedbackSource = (feedbackSub && feedbackSub.plan && feedbackSub.plan.feedback) || plan.feedback;
 
     const generalHtml = `
       <div class="admin-detail-general">
-        <div><strong>Profesor:</strong> ${Utils.escapeHtml(submission.teacher_name || '')}</div>
-        <div><strong>Grupo:</strong> ${Utils.escapeHtml(submission.group_code || '—')}</div>
-        <div><strong>Curso:</strong> ${Utils.escapeHtml(submission.course_label || plan.courseName || '—')}</div>
-        <div><strong>Horario del grupo:</strong> ${Utils.escapeHtml(submission.schedule || '—')}</div>
+        <div><strong>Profesor:</strong> ${Utils.escapeHtml(group.teacher_name || '')}</div>
+        <div><strong>Grupo:</strong> ${Utils.escapeHtml(group.group_code || '—')}</div>
+        <div><strong>Curso:</strong> ${Utils.escapeHtml(group.course_label || plan.courseName || '—')}</div>
+        <div><strong>Horario del grupo:</strong> ${Utils.escapeHtml(group.schedule || '—')}</div>
         <div><strong>Nombre del curso (Minuto a Minuto):</strong> ${Utils.escapeHtml(plan.courseName || '—')}</div>
         <div><strong>Hora de inicio:</strong> ${Utils.escapeHtml(plan.startTime || '—')}</div>
-        <div><strong>Enviado:</strong> ${Utils.escapeHtml(formatDate(submission.created_at))}</div>
+        <div><strong>Minuto a Minuto enviado:</strong> ${planSub ? Utils.escapeHtml(formatDate(planSub.created_at)) : 'Aún no se ha diligenciado.'}</div>
+        <div><strong>Retroalimentación enviada:</strong> ${feedbackSub ? Utils.escapeHtml(formatDate(feedbackSub.created_at)) : 'Aún no se ha diligenciado.'}</div>
       </div>
     `;
+
+    if (!planSub) {
+      const feedbackOnlyHtml = renderFeedbackHtml(feedbackSource);
+      return generalHtml + '<p class="admin-empty-state">Aún no se ha diligenciado el Minuto a Minuto.</p>' + feedbackOnlyHtml;
+    }
 
     const blocksHtml = blocks.map((container, i) => {
       const subRows = (container.subBlocks || []).map((sb) => `
@@ -239,17 +311,23 @@ const AdminPanel = (() => {
       ? `<div class="admin-detail-section"><h4>Recomendaciones generales</h4><p class="admin-detail-text">${Utils.escapeHtml(recommendations)}</p></div>`
       : '';
 
-    const feedback = plan.feedback && plan.feedback.answers;
-    const feedbackLabels = { onTime: '¿Se cumplió con el tiempo planeado?', dua: '¿Se aplicó el DUA?', topics: '¿Se abordaron todos los temas planeados?' };
-    const feedbackHtml = feedback
-      ? `<div class="admin-detail-section"><h4>Retroalimentación</h4>${Object.entries(feedbackLabels).map(([key, label]) => {
-          const answer = feedback[key];
-          if (!answer || !answer.value) return '';
-          return `<p class="admin-detail-text"><strong>${Utils.escapeHtml(label)}</strong> ${Utils.escapeHtml(answer.value === 'si' ? 'Sí' : 'No')}${answer.comment ? ' — ' + Utils.escapeHtml(answer.comment) : ''}</p>`;
-        }).join('')}${plan.feedback.improve ? `<p class="admin-detail-text"><strong>Aspectos a mejorar:</strong> ${Utils.escapeHtml(plan.feedback.improve)}</p>` : ''}</div>`
-      : '';
+    return generalHtml + blocksHtml + recommendationsHtml + renderFeedbackHtml(feedbackSource);
+  }
 
-    return generalHtml + blocksHtml + recommendationsHtml + feedbackHtml;
+  /** Sección de retroalimentación, reutilizada tanto si el plan está diligenciado como si solo llegó la retroalimentación. */
+  function renderFeedbackHtml(feedbackSource) {
+    const feedback = feedbackSource && feedbackSource.answers;
+    if (!feedback) return '<div class="admin-detail-section"><h4>Retroalimentación</h4><p class="admin-empty-state">Aún no se ha diligenciado la retroalimentación.</p></div>';
+    const feedbackLabels = { onTime: '¿Se cumplió con el tiempo planeado?', dua: '¿Se aplicó el DUA?', topics: '¿Se abordaron todos los temas planeados?' };
+    const answersHtml = Object.entries(feedbackLabels).map(([key, label]) => {
+      const answer = feedback[key];
+      if (!answer || !answer.value) return '';
+      return `<p class="admin-detail-text"><strong>${Utils.escapeHtml(label)}</strong> ${Utils.escapeHtml(answer.value === 'si' ? 'Sí' : 'No')}${answer.comment ? ' — ' + Utils.escapeHtml(answer.comment) : ''}</p>`;
+    }).join('');
+    const improveHtml = feedbackSource.improve
+      ? `<p class="admin-detail-text"><strong>Aspectos a mejorar:</strong> ${Utils.escapeHtml(feedbackSource.improve)}</p>`
+      : '';
+    return `<div class="admin-detail-section"><h4>Retroalimentación</h4>${answersHtml}${improveHtml}</div>`;
   }
 
   function formatDate(iso) {

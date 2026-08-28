@@ -12,6 +12,7 @@ const PlanForm = (() => {
   let planId = null;
   let planCreatedAt = null;
   let els = {};
+  let currentMode = null; // 'plan' | 'feedback' | null (pantalla de selección)
   const debouncedSave = Utils.debounce(() => save(), 600);
 
   const FEEDBACK_QUESTIONS = ['onTime', 'dua', 'topics'];
@@ -30,7 +31,36 @@ const PlanForm = (() => {
       recommendationsList: document.getElementById('recommendations-list'),
       feedbackImprove: document.getElementById('feedback-improve'),
       btnSubmitPlan: document.getElementById('btn-submit-plan'),
+      btnSubmitFeedback: document.getElementById('btn-submit-feedback'),
+      modeSelect: document.getElementById('mode-select'),
+      modeActive: document.getElementById('mode-active'),
+      btnModePlan: document.getElementById('btn-mode-plan'),
+      btnModeFeedback: document.getElementById('btn-mode-feedback'),
+      btnBackToModeSelect: document.getElementById('btn-back-to-mode-select'),
+      cardPrep: document.getElementById('card-prep'),
+      cardRecommendations: document.getElementById('card-recommendations'),
+      cardFeedback: document.getElementById('card-feedback'),
     };
+  }
+
+  /**
+   * Muestra el modo elegido ('plan' o 'feedback') y oculta la pantalla de
+   * selección; `null` vuelve a la pantalla de selección. Ambos modos
+   * comparten el mismo formulario montado en el DOM (nunca se destruye),
+   * solo se alternan las cards y botones de envío visibles con `hidden`.
+   */
+  function setMode(mode) {
+    currentMode = mode;
+    els.modeSelect.hidden = !!mode;
+    els.modeActive.hidden = !mode;
+    if (!mode) return;
+
+    const isPlan = mode === 'plan';
+    els.cardPrep.hidden = !isPlan;
+    els.cardRecommendations.hidden = !isPlan;
+    els.cardFeedback.hidden = isPlan;
+    els.btnSubmitPlan.hidden = !isPlan;
+    els.btnSubmitFeedback.hidden = isPlan;
   }
 
   function init() {
@@ -54,12 +84,17 @@ const PlanForm = (() => {
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
 
     els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
+    els.btnSubmitFeedback.addEventListener('click', handleSubmitFeedback);
+    els.btnModePlan.addEventListener('click', () => setMode('plan'));
+    els.btnModeFeedback.addEventListener('click', () => setMode('feedback'));
+    els.btnBackToModeSelect.addEventListener('click', () => setMode(null));
 
     initCollapsibleSections();
     initRecommendationsSection();
     initFeedbackSection();
 
     loadOrCreate();
+    setMode(null);
   }
 
   /* ---------------------------------------------------------------------
@@ -501,6 +536,54 @@ const PlanForm = (() => {
     } finally {
       els.btnSubmitPlan.innerHTML = originalLabel;
       els.btnSubmitPlan.disabled = false;
+    }
+  }
+
+  /**
+   * Envío de la retroalimentación ("después de la clase"), como registro
+   * separado del Minuto a Minuto — se diligencia en otro momento, por eso
+   * vuelve a pedir identidad. El panel admin los combina como un solo
+   * informe cuando comparten profesor + grupo (ver adminPanel.js).
+   */
+  async function handleSubmitFeedback() {
+    const feedbackData = getFeedbackData();
+    const hasAnyAnswer = FEEDBACK_QUESTIONS.some((q) => feedbackData.answers[q].value);
+    if (!hasAnyAnswer) {
+      Toast.warning('Responde al menos una pregunta antes de enviar la retroalimentación.');
+      return;
+    }
+
+    const identity = await TeacherIdentity.askIdentity();
+    if (!identity) return; // el profesor canceló el modal de identidad
+
+    els.btnSubmitFeedback.disabled = true;
+    const originalLabel = els.btnSubmitFeedback.innerHTML;
+    els.btnSubmitFeedback.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
+
+    save();
+    const currentPlan = buildPlanObject();
+
+    try {
+      await SubmissionsApi.submitFeedback({
+        teacherName: identity.name,
+        groupCode: identity.group,
+        courseLabel: identity.courseLabel,
+        schedule: identity.schedule,
+        plan: {
+          id: currentPlan.id,
+          createdAt: currentPlan.createdAt,
+          courseName: currentPlan.courseName,
+          startTime: currentPlan.startTime,
+          feedback: currentPlan.feedback,
+        },
+      });
+      Toast.success('Retroalimentación enviada correctamente.');
+    } catch (e) {
+      console.error('No se pudo enviar la retroalimentación.', e);
+      Toast.warning('No se pudo enviar (revisa tu conexión). Tu retroalimentación sigue guardada en este navegador; puedes intentar de nuevo.');
+    } finally {
+      els.btnSubmitFeedback.innerHTML = originalLabel;
+      els.btnSubmitFeedback.disabled = false;
     }
   }
 

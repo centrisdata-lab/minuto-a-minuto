@@ -15,7 +15,7 @@ const SubmissionsApi = (() => {
   const SUPABASE_URL = 'https://uctkoqtiuzoujinnvhco.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_PFXpLO2N5W3XIT9lbXou4A_4UHNFy7n';
 
-  /** Registra un envío del Minuto a Minuto completo. `plan` es el objeto completo que ya guarda planForm.js (bloques, recomendaciones, feedback). */
+  /** Registra un envío del Minuto a Minuto (sin recomendaciones — ver planForm.js). `stage: 'plan'` lo distingue de un envío de retroalimentación. */
   async function submitPlan({ teacherName, groupCode, courseLabel, schedule, plan }) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
       method: 'POST',
@@ -32,12 +32,45 @@ const SubmissionsApi = (() => {
         schedule: schedule || null,
         course_name: plan.courseName || null,
         start_time: plan.startTime || null,
+        stage: 'plan',
         plan,
       }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`Supabase respondió ${res.status} al enviar. ${text}`);
+    }
+  }
+
+  /**
+   * Registra un envío de Retroalimentación ("después de la clase"), como
+   * registro separado del Minuto a Minuto — `stage: 'feedback'` permite que
+   * el panel admin lo combine con el plan del mismo profesor+grupo. `plan`
+   * aquí es un objeto reducido (solo id/fechas/curso/horario/feedback).
+   */
+  async function submitFeedback({ teacherName, groupCode, courseLabel, schedule, plan }) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        teacher_name: teacherName,
+        group_code: groupCode || null,
+        course_label: courseLabel || null,
+        schedule: schedule || null,
+        course_name: plan.courseName || null,
+        start_time: plan.startTime || null,
+        stage: 'feedback',
+        plan,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Supabase respondió ${res.status} al enviar la retroalimentación. ${text}`);
     }
   }
 
@@ -71,7 +104,7 @@ const SubmissionsApi = (() => {
     }
   }
 
-  return { submitPlan, fetchAllSubmissions, deleteSubmission };
+  return { submitPlan, submitFeedback, fetchAllSubmissions, deleteSubmission };
 })();
 
 window.SubmissionsApi = SubmissionsApi;

@@ -48,8 +48,33 @@
     <section class="editor" id="editor">
       <div class="container">
 
+        <!-- ===== Pantalla de selección: qué se va a diligenciar ===== -->
+        <section class="mode-select" id="mode-select">
+          <h2 class="mode-select-title">¿Qué vas a diligenciar?</h2>
+          <p class="mode-select-subtitle">Elige una opción para continuar.</p>
+          <div class="mode-select-grid">
+            <button type="button" class="mode-card" id="btn-mode-plan">
+              <span class="mode-card-icon icon-orange"><i class="fa-solid fa-list-check"></i></span>
+              <span class="mode-card-title">Diligenciar Minuto a Minuto</span>
+              <span class="mode-card-desc">Prepara los bloques de tu clase antes de dictarla.</span>
+            </button>
+            <button type="button" class="mode-card" id="btn-mode-feedback">
+              <span class="mode-card-icon icon-navy"><i class="fa-solid fa-comment-dots"></i></span>
+              <span class="mode-card-title">Diligenciar Retroalimentación</span>
+              <span class="mode-card-desc">Responde después de dictar tu clase.</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ===== Contenido del modo activo (Minuto a Minuto o Retroalimentación) ===== -->
+        <div id="mode-active" hidden>
+
         <!-- Barra de estado de guardado y acciones -->
         <div class="editor-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-back-to-mode-select">
+            <i class="fa-solid fa-arrow-left"></i> Volver
+          </button>
+
           <div class="save-status" id="save-status">
             <i class="fa-solid fa-check-circle"></i>
             <span>Guardado</span>
@@ -59,13 +84,16 @@
             <button type="button" class="btn btn-primary" id="btn-submit-plan" title="Descarga el PDF y envía el Minuto a Minuto para que el equipo lo revise">
               <i class="fa-solid fa-download"></i> Descargar como imagen y enviar
             </button>
+            <button type="button" class="btn btn-primary" id="btn-submit-feedback" title="Envía tu retroalimentación para que el equipo la revise" hidden>
+              <i class="fa-solid fa-paper-plane"></i> Enviar retroalimentación
+            </button>
           </div>
         </div>
 
         <form id="plan-form" novalidate>
 
           <!-- ===== Card 1: Preparación de clase (Minuto a Minuto) ===== -->
-          <section class="card">
+          <section class="card" id="card-prep">
             <div class="card-header">
               <div class="card-header-icon icon-orange"><span class="step-number">1</span></div>
               <div>
@@ -245,6 +273,8 @@
           </section>
 
         </form>
+        </div>
+
       </div>
     </section>
 
@@ -484,7 +514,7 @@
           <table class="example-table">
             <thead>
               <tr>
-                <th>Fecha</th><th>Profesor</th><th>Grupo</th><th>Curso</th><th>Hora inicio</th><th></th>
+                <th>Fecha</th><th>Profesor</th><th>Grupo</th><th>Curso</th><th>Estado</th><th></th>
               </tr>
             </thead>
             <tbody id="admin-table-body"></tbody>
@@ -498,9 +528,14 @@
           <button type="button" class="btn btn-ghost btn-sm" id="admin-detail-back">
             <i class="fa-solid fa-arrow-left"></i> Volver a la lista
           </button>
-          <button type="button" class="btn btn-danger btn-sm" id="admin-detail-delete">
-            <i class="fa-solid fa-trash"></i> Eliminar envío
-          </button>
+          <div class="admin-detail-delete-actions">
+            <button type="button" class="btn btn-danger btn-sm" id="admin-detail-delete-plan">
+              <i class="fa-solid fa-trash"></i> Eliminar Minuto a Minuto
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="admin-detail-delete-feedback">
+              <i class="fa-solid fa-trash"></i> Eliminar retroalimentación
+            </button>
+          </div>
         </div>
         <div id="admin-detail-body" class="admin-detail-body"></div>
       </div>

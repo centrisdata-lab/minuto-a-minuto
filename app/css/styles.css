@@ -435,6 +435,74 @@ img { max-width: 100%; display: block; }
 
 .card-body { padding: var(--space-4); }
 
+/* ---------- Pantalla de selección: Minuto a Minuto vs Retroalimentación ---------- */
+.mode-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) 0;
+  text-align: center;
+  animation: fadeInUp 0.35s ease both;
+}
+.mode-select-title {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  margin: 0;
+}
+.mode-select-subtitle { color: var(--text-secondary); margin: 0; }
+
+.mode-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 720px;
+  margin-top: var(--space-4);
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+  animation: fadeInUp 0.35s ease both;
+}
+.mode-card:hover, .mode-card:focus-visible {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border-color-strong);
+}
+
+.mode-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.mode-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+.mode-card-desc { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; }
+
 /* ---------- Header de card colapsable (Recomendaciones / Después de la clase) ---------- */
 .card-header-toggle {
   width: 100%;
@@ -1321,9 +1389,22 @@ img { max-width: 100%; display: block; }
 .admin-link-empty { color: var(--text-muted); }
 .admin-empty-state { text-align: center; color: var(--text-muted); padding: var(--space-6) 0; margin: 0; }
 
+/* ---------- Badge de estado del informe (Completo / Solo plan / Solo retro.) ---------- */
+.admin-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-status-badge.status-complete { background: rgba(31, 157, 85, 0.14); color: var(--color-success); }
+.admin-status-badge.status-partial { background: rgba(232, 163, 23, 0.14); color: var(--color-warning); }
+
 /* ---------- Detalle de un envío (dentro del panel admin) ---------- */
 .admin-detail-step { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5); }
-.admin-detail-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.admin-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-4); }
+.admin-detail-delete-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .admin-detail-general {
   display: grid;
   grid-template-columns: 1fr 1fr;
