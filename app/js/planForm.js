@@ -2,10 +2,11 @@
  * planForm.js
  * Controla el editor del Minuto a Minuto (Preparación + Recomendaciones
  * generales + Retroalimentación): carga de datos y autoguardado local.
- * Solo existe una planeación activa por navegador (ver storage.js). Además
- * de "Descargar imagen" (PDF), "Enviar Minuto a Minuto" registra el envío
- * en la base de datos central (ver submissionsApi.js) que lee el panel
- * admin — pide nombre + grupo justo antes de enviar (teacherIdentity.js).
+ * Solo existe una planeación activa por navegador (ver storage.js). El
+ * curso/grupo/horario se elige una sola vez, al inicio (initGroupPicker),
+ * visible en ambos modos. Además de "Descargar PDF" (PDF), "Enviar" registra
+ * el envío en la base de datos central (ver submissionsApi.js) que lee el
+ * panel admin — pide nombre + rol justo antes de enviar (teacherIdentity.js).
  */
 
 const PlanForm = (() => {
@@ -13,6 +14,7 @@ const PlanForm = (() => {
   let planCreatedAt = null;
   let els = {};
   let currentMode = null; // 'plan' | 'feedback' | null (pantalla de selección)
+  let selectedGroup = null; // { course, group, courseCode, schedule } elegido en el selector de grupo
   const debouncedSave = Utils.debounce(() => save(), 600);
 
   const FEEDBACK_QUESTIONS = ['onTime', 'dua', 'topics'];
@@ -20,8 +22,9 @@ const PlanForm = (() => {
   function cacheEls() {
     els = {
       form: document.getElementById('plan-form'),
-      courseName: document.getElementById('plan-course-name'),
-      courseNameResults: document.getElementById('course-name-results'),
+      groupSearch: document.getElementById('group-search'),
+      groupResults: document.getElementById('group-results'),
+      groupSelectedLabel: document.getElementById('group-selected'),
       startTime: document.getElementById('plan-start-time'),
       startTimeHour: document.getElementById('start-time-hour'),
       startTimeMinute: document.getElementById('start-time-minute'),
@@ -69,10 +72,7 @@ const PlanForm = (() => {
       debouncedSave();
     });
 
-    els.courseName.addEventListener('input', () => {
-      debouncedSave();
-    });
-    initCourseNamePicker();
+    initGroupPicker();
 
     els.startTime.addEventListener('input', () => {
       BlocksManager.recalculateStartTimes();
@@ -98,42 +98,59 @@ const PlanForm = (() => {
   }
 
   /* ---------------------------------------------------------------------
-     Selector de "Nombre del curso": buscador con los 21 cursos únicos ya
-     conocidos (GROUPS_DATA, ver groupsData.js), para no volver a escribir a
-     mano un nombre que ya se pedirá con más detalle (grupo/horario) al
-     enviar. El campo sigue siendo texto libre editable — el listado es
-     solo una ayuda para no repetir tipeo, no restringe lo que se escribe.
+     Selector de "Curso, grupo y horario": buscador sobre GROUPS_DATA que
+     fija curso+grupo+horario reales en un solo paso, visible en ambos
+     modos (Minuto a Minuto y Retroalimentación) — así se pide una sola vez
+     y el modal de envío (teacherIdentity.js) ya no lo vuelve a preguntar.
      --------------------------------------------------------------------- */
-  function initCourseNamePicker() {
-    if (typeof GROUPS_DATA === 'undefined') return; // groupsData.js no cargado, degrada a input de texto simple
-    const courseNames = [...new Set(GROUPS_DATA.map((g) => g.course))].sort((a, b) => a.localeCompare(b, 'es'));
+  function groupMatchLabel(g) {
+    return `${g.course} — ${g.group} — ${g.schedule}`;
+  }
 
-    const renderCourseResults = (query) => {
-      const q = query.trim().toLowerCase();
-      const filtered = !q ? courseNames : courseNames.filter((c) => c.toLowerCase().includes(q));
-      if (filtered.length === 0) {
-        els.courseNameResults.innerHTML = '<div class="identity-group-empty">Sin coincidencias — puedes escribir el nombre igual.</div>';
-      } else {
-        els.courseNameResults.innerHTML = filtered.map((c) => `
-          <button type="button" class="identity-group-item js-course-name-item" data-course="${Utils.escapeHtml(c)}">
-            <span class="identity-group-course">${Utils.escapeHtml(c)}</span>
-          </button>
-        `).join('');
-      }
-      els.courseNameResults.hidden = false;
-    };
+  function renderGroupResults(query) {
+    const q = query.trim().toLowerCase();
+    const filtered = !q ? GROUPS_DATA : GROUPS_DATA.filter((g) => groupMatchLabel(g).toLowerCase().includes(q));
+    if (filtered.length === 0) {
+      els.groupResults.innerHTML = '<div class="identity-group-empty">Sin resultados. Intenta con otro nombre de curso.</div>';
+    } else {
+      els.groupResults.innerHTML = filtered.slice(0, 40).map((g) => `
+        <button type="button" class="identity-group-item" data-group="${g.group}">
+          <span class="identity-group-course">${Utils.escapeHtml(g.course)}</span>
+          <span class="identity-group-meta">${Utils.escapeHtml(g.group)} · ${Utils.escapeHtml(g.schedule)}</span>
+        </button>
+      `).join('');
+    }
+    els.groupResults.hidden = false;
+  }
 
-    els.courseName.addEventListener('focus', () => renderCourseResults(els.courseName.value));
-    els.courseName.addEventListener('input', () => renderCourseResults(els.courseName.value));
-    els.courseNameResults.addEventListener('click', (e) => {
-      const item = e.target.closest('.js-course-name-item');
-      if (!item) return;
-      els.courseName.value = item.dataset.course;
-      els.courseNameResults.hidden = true;
+  /** Selecciona (o limpia, si `groupCode` es null) el grupo activo. `silent` evita cerrar el buscador ni autoguardar (usado al restaurar desde Storage). */
+  function selectGroup(groupCode, { silent = false } = {}) {
+    selectedGroup = GROUPS_DATA.find((g) => g.group === groupCode) || null;
+    if (selectedGroup) {
+      els.groupSelectedLabel.textContent = groupMatchLabel(selectedGroup);
+      els.groupSelectedLabel.hidden = false;
+    } else {
+      els.groupSelectedLabel.hidden = true;
+    }
+    if (!silent) {
+      els.groupSearch.value = '';
+      els.groupResults.hidden = true;
       debouncedSave();
+    }
+  }
+
+  function initGroupPicker() {
+    if (typeof GROUPS_DATA === 'undefined') return; // groupsData.js no cargado, degrada a selector inactivo
+
+    els.groupSearch.addEventListener('focus', () => renderGroupResults(els.groupSearch.value));
+    els.groupSearch.addEventListener('input', () => renderGroupResults(els.groupSearch.value));
+    els.groupResults.addEventListener('click', (e) => {
+      const item = e.target.closest('.identity-group-item');
+      if (!item) return;
+      selectGroup(item.dataset.group);
     });
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.course-name-field')) els.courseNameResults.hidden = true;
+      if (!e.target.closest('.identity-group-field')) els.groupResults.hidden = true;
     });
   }
 
@@ -373,7 +390,7 @@ const PlanForm = (() => {
       planId = null;
       planCreatedAt = null;
     }
-    els.courseName.value = '';
+    selectGroup(null, { silent: true });
     els.startTime.value = '09:00';
     syncStartTimePickerFromValue();
     BlocksManager.loadBlocks(defaultBlocks());
@@ -385,7 +402,7 @@ const PlanForm = (() => {
     if (plan) {
       planId = plan.id;
       planCreatedAt = plan.createdAt || null;
-      els.courseName.value = plan.courseName || '';
+      selectGroup(plan.groupCode || null, { silent: true });
       els.startTime.value = plan.startTime || '09:00';
       syncStartTimePickerFromValue();
 
@@ -422,7 +439,9 @@ const PlanForm = (() => {
     return {
       id: planId,
       createdAt: planCreatedAt,
-      courseName: els.courseName.value,
+      courseLabel: selectedGroup ? selectedGroup.course : '',
+      groupCode: selectedGroup ? selectedGroup.group : '',
+      schedule: selectedGroup ? selectedGroup.schedule : '',
       startTime: els.startTime.value,
       blocks,
       recommendations,
@@ -491,8 +510,9 @@ const PlanForm = (() => {
   /**
    * Un solo botón hace las dos cosas: descarga el PDF del Minuto a Minuto
    * (siempre funciona, es local) y lo envía a la base de datos central
-   * (Supabase) para que el panel admin lo vea. Pide nombre + grupo justo
-   * antes de enviar (no bloquea la app al cargar la página). Cada clic
+   * (Supabase) para que el panel admin lo vea. Pide nombre + rol justo
+   * antes de enviar (no bloquea la app al cargar la página) — el grupo ya
+   * se eligió antes, en el selector de curso/grupo/horario. Cada clic
    * crea un registro nuevo — no sobrescribe envíos anteriores, así que el
    * profesor puede reenviar tantas veces como quiera (por ejemplo, tras
    * corregir algo) y el admin ve el historial completo. Si el envío a la
@@ -500,9 +520,9 @@ const PlanForm = (() => {
    * se pierde nada, solo no queda registrado hasta reintentar.
    */
   async function handleSubmitPlan() {
-    if (!els.courseName.value.trim()) {
-      Toast.warning('Escribe el nombre del curso antes de enviar.');
-      els.courseName.focus();
+    if (!selectedGroup) {
+      Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
+      els.groupSearch.focus();
       return;
     }
 
@@ -524,9 +544,10 @@ const PlanForm = (() => {
     try {
       await SubmissionsApi.submitPlan({
         teacherName: identity.name,
-        groupCode: identity.group,
-        courseLabel: identity.courseLabel,
-        schedule: identity.schedule,
+        teacherRole: identity.role,
+        groupCode: selectedGroup.group,
+        courseLabel: selectedGroup.course,
+        schedule: selectedGroup.schedule,
         plan: planForAdmin,
       });
       Toast.success('PDF descargado y Minuto a Minuto enviado correctamente.');
@@ -546,6 +567,12 @@ const PlanForm = (() => {
    * informe cuando comparten profesor + grupo (ver adminPanel.js).
    */
   async function handleSubmitFeedback() {
+    if (!selectedGroup) {
+      Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
+      els.groupSearch.focus();
+      return;
+    }
+
     const feedbackData = getFeedbackData();
     const hasAnyAnswer = FEEDBACK_QUESTIONS.some((q) => feedbackData.answers[q].value);
     if (!hasAnyAnswer) {
@@ -566,13 +593,14 @@ const PlanForm = (() => {
     try {
       await SubmissionsApi.submitFeedback({
         teacherName: identity.name,
-        groupCode: identity.group,
-        courseLabel: identity.courseLabel,
-        schedule: identity.schedule,
+        teacherRole: identity.role,
+        groupCode: selectedGroup.group,
+        courseLabel: selectedGroup.course,
+        schedule: selectedGroup.schedule,
         plan: {
           id: currentPlan.id,
           createdAt: currentPlan.createdAt,
-          courseName: currentPlan.courseName,
+          courseLabel: currentPlan.courseLabel,
           startTime: currentPlan.startTime,
           feedback: currentPlan.feedback,
         },

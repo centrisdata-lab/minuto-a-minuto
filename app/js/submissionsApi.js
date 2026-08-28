@@ -16,7 +16,7 @@ const SubmissionsApi = (() => {
   const SUPABASE_ANON_KEY = 'sb_publishable_PFXpLO2N5W3XIT9lbXou4A_4UHNFy7n';
 
   /** Registra un envío del Minuto a Minuto (sin recomendaciones — ver planForm.js). `stage: 'plan'` lo distingue de un envío de retroalimentación. */
-  async function submitPlan({ teacherName, groupCode, courseLabel, schedule, plan }) {
+  async function submitPlan({ teacherName, teacherRole, groupCode, courseLabel, schedule, plan }) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
       method: 'POST',
       headers: {
@@ -27,10 +27,11 @@ const SubmissionsApi = (() => {
       },
       body: JSON.stringify({
         teacher_name: teacherName,
+        teacher_role: teacherRole || null,
         group_code: groupCode || null,
         course_label: courseLabel || null,
         schedule: schedule || null,
-        course_name: plan.courseName || null,
+        course_name: plan.courseLabel || null,
         start_time: plan.startTime || null,
         stage: 'plan',
         plan,
@@ -48,7 +49,7 @@ const SubmissionsApi = (() => {
    * el panel admin lo combine con el plan del mismo profesor+grupo. `plan`
    * aquí es un objeto reducido (solo id/fechas/curso/horario/feedback).
    */
-  async function submitFeedback({ teacherName, groupCode, courseLabel, schedule, plan }) {
+  async function submitFeedback({ teacherName, teacherRole, groupCode, courseLabel, schedule, plan }) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
       method: 'POST',
       headers: {
@@ -59,10 +60,11 @@ const SubmissionsApi = (() => {
       },
       body: JSON.stringify({
         teacher_name: teacherName,
+        teacher_role: teacherRole || null,
         group_code: groupCode || null,
         course_label: courseLabel || null,
         schedule: schedule || null,
-        course_name: plan.courseName || null,
+        course_name: plan.courseLabel || null,
         start_time: plan.startTime || null,
         stage: 'feedback',
         plan,

@@ -260,13 +260,14 @@ const AdminPanel = (() => {
     const blocks = plan.blocks || [];
     const feedbackSource = (feedbackSub && feedbackSub.plan && feedbackSub.plan.feedback) || plan.feedback;
 
+    const role = (planSub && planSub.teacher_role) || (feedbackSub && feedbackSub.teacher_role) || '—';
     const generalHtml = `
       <div class="admin-detail-general">
         <div><strong>Profesor:</strong> ${Utils.escapeHtml(group.teacher_name || '')}</div>
+        <div><strong>Rol:</strong> ${Utils.escapeHtml(role)}</div>
         <div><strong>Grupo:</strong> ${Utils.escapeHtml(group.group_code || '—')}</div>
-        <div><strong>Curso:</strong> ${Utils.escapeHtml(group.course_label || plan.courseName || '—')}</div>
+        <div><strong>Curso:</strong> ${Utils.escapeHtml(group.course_label || plan.courseLabel || '—')}</div>
         <div><strong>Horario del grupo:</strong> ${Utils.escapeHtml(group.schedule || '—')}</div>
-        <div><strong>Nombre del curso (Minuto a Minuto):</strong> ${Utils.escapeHtml(plan.courseName || '—')}</div>
         <div><strong>Hora de inicio:</strong> ${Utils.escapeHtml(plan.startTime || '—')}</div>
         <div><strong>Minuto a Minuto enviado:</strong> ${planSub ? Utils.escapeHtml(formatDate(planSub.created_at)) : 'Aún no se ha diligenciado.'}</div>
         <div><strong>Retroalimentación enviada:</strong> ${feedbackSub ? Utils.escapeHtml(formatDate(feedbackSub.created_at)) : 'Aún no se ha diligenciado.'}</div>

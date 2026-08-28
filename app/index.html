@@ -85,13 +85,25 @@
 
           <div class="editor-toolbar-actions">
             <button type="button" class="btn btn-primary" id="btn-submit-plan" title="Descarga el PDF y envía el Minuto a Minuto para que el equipo lo revise">
-              <i class="fa-solid fa-download"></i> Descargar como imagen y enviar
+              <i class="fa-solid fa-download"></i> Descargar PDF y Enviar
             </button>
             <button type="button" class="btn btn-primary" id="btn-submit-feedback" title="Envía tu retroalimentación para que el equipo la revise" hidden>
               <i class="fa-solid fa-paper-plane"></i> Enviar retroalimentación
             </button>
           </div>
         </div>
+
+        <!-- ===== Curso, grupo y horario: visible en ambos modos, se pide una sola vez ===== -->
+        <section class="card group-picker-section">
+          <div class="card-body">
+            <div class="field identity-group-field">
+              <label for="group-search">Curso, grupo y horario</label>
+              <input type="text" id="group-search" placeholder="Busca por curso, grupo u horario..." autocomplete="off" />
+              <span class="identity-group-selected" id="group-selected" hidden></span>
+              <div class="identity-group-results" id="group-results" hidden></div>
+            </div>
+          </div>
+        </section>
 
         <form id="plan-form" novalidate>
 
@@ -148,11 +160,6 @@
               </div>
 
               <div class="general-fields-row">
-                <div class="field field-inline course-name-field" style="max-width:320px;">
-                  <label for="plan-course-name">Nombre del curso</label>
-                  <input type="text" id="plan-course-name" name="planCourseName" placeholder="Escribe o elige de la lista..." maxlength="100" autocomplete="off" />
-                  <div class="identity-group-results course-name-results" id="course-name-results" hidden></div>
-                </div>
                 <div class="field field-inline" style="max-width:260px;">
                   <label for="start-time-hour">Hora de inicio de la clase</label>
                   <div class="time-picker">
@@ -434,7 +441,7 @@
   <div class="modal-overlay" id="identity-modal" hidden>
     <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="identity-modal-title">
       <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-chalkboard-user"></i></div>
-      <h3 id="identity-modal-title">¿Quién envía este Minuto a Minuto?</h3>
+      <h3 id="identity-modal-title">¿Quién diligencia este Minuto a Minuto?</h3>
       <p>Esta información identifica tu envío para que el equipo lleve el control.</p>
 
       <form id="identity-form" class="identity-form">
@@ -443,11 +450,13 @@
           <input type="text" id="identity-name" placeholder="Ej. Flora Ramírez" maxlength="80" autocomplete="off" />
         </div>
 
-        <div class="field identity-group-field">
-          <label for="identity-group-search">Tu grupo</label>
-          <input type="text" id="identity-group-search" placeholder="Busca por curso, grupo u horario..." autocomplete="off" />
-          <span class="identity-group-selected" id="identity-group-selected" hidden></span>
-          <div class="identity-group-results" id="identity-group-results" hidden></div>
+        <div class="field">
+          <label for="identity-role">Tu rol</label>
+          <select id="identity-role">
+            <option value="profesor">Profesor</option>
+            <option value="tutor">Tutor</option>
+            <option value="administrador">Administrador</option>
+          </select>
         </div>
 
         <p class="identity-error" id="identity-error" hidden></p>

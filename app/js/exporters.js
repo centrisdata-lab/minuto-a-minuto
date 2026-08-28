@@ -75,8 +75,8 @@ const Exporters = (() => {
       doc.setTextColor(30, 30, 30);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      const infoText = plan.courseName
-        ? `Curso: ${plan.courseName}     |     Hora de inicio de la clase: ${plan.startTime || '-'}`
+      const infoText = plan.courseLabel
+        ? `Curso: ${plan.courseLabel}     |     Hora de inicio de la clase: ${plan.startTime || '-'}`
         : `Hora de inicio de la clase: ${plan.startTime || '-'}`;
       doc.text(infoText, 30, 66);
 
@@ -138,7 +138,7 @@ const Exporters = (() => {
         });
       }
 
-      const fileName = buildFileName(plan.courseName, 'pdf');
+      const fileName = buildFileName(plan.courseLabel, 'pdf');
       doc.save(fileName);
       Toast.success('PDF descargado correctamente.');
     } catch (e) {
