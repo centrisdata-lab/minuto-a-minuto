@@ -501,6 +501,33 @@ img { max-width: 100%; display: block; }
 
 .field textarea { resize: vertical; min-height: 60px; }
 
+/* Lista fija de recomendaciones generales — informativa, no editable. */
+.recommendations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recommendations-list li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.recommendations-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-cyan-500);
+}
+
 /* Ícono junto a la etiqueta de un campo de solo lectura, para aclarar que
    no se edita a mano (ej. "Duración total", calculada automáticamente). */
 .field-label-icon {

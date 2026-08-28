@@ -27,7 +27,7 @@ const PlanForm = (() => {
       startTimeAm: document.getElementById('start-time-am'),
       startTimePm: document.getElementById('start-time-pm'),
       saveStatus: document.getElementById('save-status'),
-      recommendationsNotes: document.getElementById('recommendations-notes'),
+      recommendationsList: document.getElementById('recommendations-list'),
       feedbackImprove: document.getElementById('feedback-improve'),
       btnSubmitPlan: document.getElementById('btn-submit-plan'),
     };
@@ -248,24 +248,27 @@ const PlanForm = (() => {
   }
 
   /* ---------------------------------------------------------------------
-     Sección "Recomendaciones generales" (texto libre, parte del "antes")
+     Sección "Recomendaciones generales" — lista fija, no editable, parte
+     del "antes". Se muestra como viñetas y se incluye igual en el PDF y
+     en el envío a la base de datos.
      --------------------------------------------------------------------- */
-  function initRecommendationsSection() {
-    els.recommendationsNotes.addEventListener('input', () => {
-      debouncedSave();
-    });
-  }
+  const RECOMMENDATIONS_LIST = [
+    'Conectarse mínimo 15 minutos antes de iniciar la clase.',
+    'Probar cámara y audio (micrófono y parlantes).',
+    'Revisar encuadre: buena iluminación y postura frente a la cámara.',
+    'Verificar fondo virtual del Campus que se vea correctamente.',
+    'Tener listos y abiertos los recursos (diapositivas, links, Padlet, etc.).',
+    'Verificar conexión a internet estable.',
+  ];
 
-  /** Texto con el que arranca "Recomendaciones generales" en un plan nuevo — el profesor puede editarlo o borrarlo libremente. */
-  const DEFAULT_RECOMMENDATIONS_TEXT = 'Conectarse mínimo 15 minutos antes de iniciar la clase.\nProbar cámara y audio (micrófono y parlantes).\nRevisar encuadre: buena iluminación y postura frente a la cámara.\nVerificar fondo (real o virtual) limpio y sin distractores.\nTener listos y abiertos los recursos (diapositivas, links, Padlet, etc.).\nVerificar conexión a internet estable.';
+  function initRecommendationsSection() {
+    els.recommendationsList.innerHTML = RECOMMENDATIONS_LIST
+      .map((item) => `<li>${Utils.escapeHtml(item)}</li>`)
+      .join('');
+  }
 
   function getRecommendationsData() {
-    return { notes: els.recommendationsNotes.value };
-  }
-
-  /** Acepta tanto la forma nueva ({notes}) como el `duringClass` antiguo ({checks, notes}) para no perder notas ya guardadas. Si no hay nada guardado todavía, precarga el texto estándar de recomendaciones (editable). */
-  function loadRecommendationsData(data) {
-    els.recommendationsNotes.value = (data && data.notes) || DEFAULT_RECOMMENDATIONS_TEXT;
+    return { notes: RECOMMENDATIONS_LIST.join('\n') };
   }
 
   /* ---------------------------------------------------------------------
@@ -339,7 +342,6 @@ const PlanForm = (() => {
     els.startTime.value = '09:00';
     syncStartTimePickerFromValue();
     BlocksManager.loadBlocks(defaultBlocks());
-    loadRecommendationsData(null);
     loadFeedbackData(null);
   }
 
@@ -370,10 +372,6 @@ const PlanForm = (() => {
       }
 
       BlocksManager.loadBlocks(blocksToLoad);
-      // `duringClass` es el nombre antiguo del campo (antes de que la
-      // sección dejara de ser un checklist); se sigue leyendo por si el
-      // plan guardado viene de una versión previa.
-      loadRecommendationsData(plan.recommendations || plan.duringClass);
       loadFeedbackData(plan.feedback);
     } else {
       resetToEmptyPlan();
@@ -482,7 +480,11 @@ const PlanForm = (() => {
 
     save();
     const currentPlan = buildPlanObject();
-    Exporters.exportPdf(currentPlan);
+    Exporters.exportPdf(currentPlan); // el PDF sí lleva recomendaciones (se comparte con el equipo)
+
+    // Al panel admin solo se envía el Minuto a Minuto (sin recomendaciones):
+    // las recomendaciones son fijas y no aportan nada distinto por profesor.
+    const { recommendations, ...planForAdmin } = currentPlan;
 
     try {
       await SubmissionsApi.submitPlan({
@@ -490,7 +492,7 @@ const PlanForm = (() => {
         groupCode: identity.group,
         courseLabel: identity.courseLabel,
         schedule: identity.schedule,
-        plan: currentPlan,
+        plan: planForAdmin,
       });
       Toast.success('PDF descargado y Minuto a Minuto enviado correctamente.');
     } catch (e) {
