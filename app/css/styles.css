@@ -1156,6 +1156,7 @@ img { max-width: 100%; display: block; }
 /* ---------- Formulario de identidad (nombre + selector de grupo con buscador), pedido al enviar ---------- */
 .identity-form { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .identity-group-field { position: relative; }
+.course-name-field { position: relative; }
 .identity-group-selected {
   display: block;
   margin-top: 8px;

@@ -20,6 +20,7 @@ const PlanForm = (() => {
     els = {
       form: document.getElementById('plan-form'),
       courseName: document.getElementById('plan-course-name'),
+      courseNameResults: document.getElementById('course-name-results'),
       startTime: document.getElementById('plan-start-time'),
       startTimeHour: document.getElementById('start-time-hour'),
       startTimeMinute: document.getElementById('start-time-minute'),
@@ -41,6 +42,7 @@ const PlanForm = (() => {
     els.courseName.addEventListener('input', () => {
       debouncedSave();
     });
+    initCourseNamePicker();
 
     els.startTime.addEventListener('input', () => {
       BlocksManager.recalculateStartTimes();
@@ -59,6 +61,46 @@ const PlanForm = (() => {
     initFeedbackSection();
 
     loadOrCreate();
+  }
+
+  /* ---------------------------------------------------------------------
+     Selector de "Nombre del curso": buscador con los 21 cursos únicos ya
+     conocidos (GROUPS_DATA, ver groupsData.js), para no volver a escribir a
+     mano un nombre que ya se pedirá con más detalle (grupo/horario) al
+     enviar. El campo sigue siendo texto libre editable — el listado es
+     solo una ayuda para no repetir tipeo, no restringe lo que se escribe.
+     --------------------------------------------------------------------- */
+  function initCourseNamePicker() {
+    if (typeof GROUPS_DATA === 'undefined') return; // groupsData.js no cargado, degrada a input de texto simple
+    const courseNames = [...new Set(GROUPS_DATA.map((g) => g.course))].sort((a, b) => a.localeCompare(b, 'es'));
+
+    const renderCourseResults = (query) => {
+      const q = query.trim().toLowerCase();
+      const filtered = !q ? courseNames : courseNames.filter((c) => c.toLowerCase().includes(q));
+      if (filtered.length === 0) {
+        els.courseNameResults.innerHTML = '<div class="identity-group-empty">Sin coincidencias — puedes escribir el nombre igual.</div>';
+      } else {
+        els.courseNameResults.innerHTML = filtered.map((c) => `
+          <button type="button" class="identity-group-item js-course-name-item" data-course="${Utils.escapeHtml(c)}">
+            <span class="identity-group-course">${Utils.escapeHtml(c)}</span>
+          </button>
+        `).join('');
+      }
+      els.courseNameResults.hidden = false;
+    };
+
+    els.courseName.addEventListener('focus', () => renderCourseResults(els.courseName.value));
+    els.courseName.addEventListener('input', () => renderCourseResults(els.courseName.value));
+    els.courseNameResults.addEventListener('click', (e) => {
+      const item = e.target.closest('.js-course-name-item');
+      if (!item) return;
+      els.courseName.value = item.dataset.course;
+      els.courseNameResults.hidden = true;
+      debouncedSave();
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.course-name-field')) els.courseNameResults.hidden = true;
+    });
   }
 
   /* ---------------------------------------------------------------------

@@ -123,9 +123,10 @@
               </div>
 
               <div class="general-fields-row">
-                <div class="field field-inline" style="max-width:320px;">
+                <div class="field field-inline course-name-field" style="max-width:320px;">
                   <label for="plan-course-name">Nombre del curso</label>
-                  <input type="text" id="plan-course-name" name="planCourseName" placeholder="Ej. Despertar Humano, Sistemas..." maxlength="100" />
+                  <input type="text" id="plan-course-name" name="planCourseName" placeholder="Escribe o elige de la lista..." maxlength="100" autocomplete="off" />
+                  <div class="identity-group-results course-name-results" id="course-name-results" hidden></div>
                 </div>
                 <div class="field field-inline" style="max-width:260px;">
                   <label for="start-time-hour">Hora de inicio de la clase</label>
