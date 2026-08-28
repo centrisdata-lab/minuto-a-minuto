@@ -12,8 +12,8 @@
  */
 
 const SubmissionsApi = (() => {
-  const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-  const SUPABASE_ANON_KEY = 'TU-ANON-KEY-AQUI';
+  const SUPABASE_URL = 'https://uctkoqtiuzoujinnvhco.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_PFXpLO2N5W3XIT9lbXou4A_4UHNFy7n';
 
   /** Registra un envío del Minuto a Minuto completo. `plan` es el objeto completo que ya guarda planForm.js (bloques, recomendaciones, feedback). */
   async function submitPlan({ teacherName, groupCode, courseLabel, schedule, plan }) {
