@@ -624,15 +624,19 @@ img { max-width: 100%; display: block; }
 }
 .readonly-field-wrap:focus-within .readonly-field-icon { color: var(--color-cyan-600); }
 
-/* Los valores calculados automáticamente (ej. duración total) deben leerse
-   claro aunque el input sea readonly — el gris apagado por defecto del
-   navegador da la falsa impresión de que el campo está vacío. El padding
-   izquierdo debe ir en esta misma regla (mismo nivel de especificidad que
-   .field input[type="text"], que si no gana y deja el texto pegado/debajo
-   del ícono). */
-.readonly-field-wrap input[readonly] {
+/* El padding izquierdo debe alcanzar mayor especificidad que
+   .field input[type="..."] (0,2,0) para no quedar pegado/debajo del
+   ícono — aplica a cualquier input dentro de este wrapper (con ícono),
+   sea readonly (ej. duración total) o normal (ej. contraseña del admin). */
+.field .readonly-field-wrap input {
   padding-left: 34px;
   padding-right: 10px;
+}
+
+/* Los valores calculados automáticamente (ej. duración total) deben leerse
+   claro aunque el input sea readonly — el gris apagado por defecto del
+   navegador da la falsa impresión de que el campo está vacío. */
+.readonly-field-wrap input[readonly] {
   color: var(--text-primary);
   font-weight: 700;
   -webkit-text-fill-color: var(--text-primary);
