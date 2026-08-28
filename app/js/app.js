@@ -9,6 +9,8 @@ const App = (() => {
     ThemeManager.init();
     ConfirmModal.init();
     Storage.getTeacherId(); // asegura que exista una sesión de navegador
+    TeacherIdentity.init();
+    AdminPanel.init();
     PlanForm.init();
     bindGlobalActions();
     document.getElementById('footer-year').textContent = new Date().getFullYear();

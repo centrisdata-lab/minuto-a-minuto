@@ -2,9 +2,10 @@
  * planForm.js
  * Controla el editor del Minuto a Minuto (Preparación + Recomendaciones
  * generales + Retroalimentación): carga de datos y autoguardado local.
- * Solo existe una planeación activa por navegador (ver storage.js). El
- * profesor descarga su PDF con el botón "Descargar imagen" y lo comparte
- * por el canal que prefiera (no hay envío centralizado dentro de la app).
+ * Solo existe una planeación activa por navegador (ver storage.js). Además
+ * de "Descargar imagen" (PDF), "Enviar Minuto a Minuto" registra el envío
+ * en la base de datos central (ver submissionsApi.js) que lee el panel
+ * admin — pide nombre + grupo justo antes de enviar (teacherIdentity.js).
  */
 
 const PlanForm = (() => {
@@ -27,6 +28,7 @@ const PlanForm = (() => {
       saveStatus: document.getElementById('save-status'),
       recommendationsNotes: document.getElementById('recommendations-notes'),
       feedbackImprove: document.getElementById('feedback-improve'),
+      btnSubmitPlan: document.getElementById('btn-submit-plan'),
     };
   }
 
@@ -50,6 +52,7 @@ const PlanForm = (() => {
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
 
     document.getElementById('btn-clear-form').addEventListener('click', handleClearForm);
+    els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
 
     initCollapsibleSections();
     initRecommendationsSection();
@@ -421,6 +424,47 @@ const PlanForm = (() => {
 
   function getCurrentPlanObject() {
     return buildPlanObject();
+  }
+
+  /**
+   * Envía el Minuto a Minuto actual a la base de datos central (Supabase),
+   * para que el panel admin lo vea. Pide nombre + grupo justo antes de
+   * enviar (no bloquea la app al cargar la página). Cada clic en "Enviar"
+   * crea un registro nuevo — no sobrescribe envíos anteriores, así que el
+   * profesor puede reenviar tantas veces como quiera (por ejemplo, tras
+   * corregir algo) y el admin ve el historial completo.
+   */
+  async function handleSubmitPlan() {
+    if (!els.courseName.value.trim()) {
+      Toast.warning('Escribe el nombre del curso antes de enviar.');
+      els.courseName.focus();
+      return;
+    }
+
+    const identity = await TeacherIdentity.askIdentity();
+    if (!identity) return; // el profesor canceló el modal de identidad
+
+    els.btnSubmitPlan.disabled = true;
+    const originalLabel = els.btnSubmitPlan.innerHTML;
+    els.btnSubmitPlan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
+
+    save();
+    try {
+      await SubmissionsApi.submitPlan({
+        teacherName: identity.name,
+        groupCode: identity.group,
+        courseLabel: identity.courseLabel,
+        schedule: identity.schedule,
+        plan: buildPlanObject(),
+      });
+      Toast.success('Minuto a Minuto enviado correctamente.');
+    } catch (e) {
+      console.error('No se pudo enviar el Minuto a Minuto.', e);
+      Toast.warning('No se pudo enviar (revisa tu conexión). Tu planeación sigue guardada en este navegador; puedes intentar enviar de nuevo.');
+    } finally {
+      els.btnSubmitPlan.innerHTML = originalLabel;
+      els.btnSubmitPlan.disabled = false;
+    }
   }
 
   return {
