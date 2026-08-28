@@ -19,11 +19,26 @@ const Exporters = (() => {
     return (blocks || []).flatMap((container) => container.subBlocks || []);
   }
 
-  /** Notas de bloque (a nivel contenedor, ej. Bloque 3) que sí tienen texto, en orden. */
+  /**
+   * Notas de bloque (a nivel contenedor) que sí tienen texto, junto con a
+   * qué número(s) de fila de la tabla corresponden — para que la nota diga
+   * explícitamente "Nota (fila 9):" en vez de quedar suelta sin contexto,
+   * ambiguo cuando hay varios bloques con varias filas cada uno.
+   */
   function collectBlockNotes(blocks) {
-    return (blocks || [])
-      .map((container) => (container.note || '').trim())
-      .filter(Boolean);
+    const notes = [];
+    let rowIndex = 0;
+    (blocks || []).forEach((container) => {
+      const rowCount = (container.subBlocks || []).length;
+      const firstRow = rowIndex + 1;
+      const lastRow = rowIndex + rowCount;
+      rowIndex += rowCount;
+      const note = (container.note || '').trim();
+      if (!note || rowCount === 0) return;
+      const rowLabel = firstRow === lastRow ? `fila ${firstRow}` : `filas ${firstRow}-${lastRow}`;
+      notes.push({ rowLabel, note });
+    });
+    return notes;
   }
 
   /** Suma la duración de todos los sub-bloques y la formatea igual que el campo "Duración total de la clase" del formulario. */
@@ -126,8 +141,8 @@ const Exporters = (() => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(30, 30, 30);
-        notes.forEach((note) => {
-          const lines = doc.splitTextToSize(`Nota: ${note}`, pageWidth - 60);
+        notes.forEach(({ rowLabel, note }) => {
+          const lines = doc.splitTextToSize(`Nota (${rowLabel}): ${note}`, pageWidth - 60);
           doc.text(lines, 30, y);
           y += lines.length * 12 + 6;
         });
