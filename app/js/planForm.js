@@ -82,9 +82,6 @@ const PlanForm = (() => {
     });
     initStartTimePicker();
 
-    document.getElementById('btn-add-block').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
-    document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
-
     els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
     els.btnSubmitFeedback.addEventListener('click', handleSubmitFeedback);
     els.btnModePlan.addEventListener('click', () => setMode('plan'));
