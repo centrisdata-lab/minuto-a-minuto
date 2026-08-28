@@ -26,7 +26,6 @@ const PlanForm = (() => {
       courseResults: document.getElementById('course-results'),
       groupSearch: document.getElementById('group-search'),
       groupResults: document.getElementById('group-results'),
-      groupSelectedLabel: document.getElementById('group-selected'),
       startTime: document.getElementById('plan-start-time'),
       startTimeHour: document.getElementById('start-time-hour'),
       startTimeMinute: document.getElementById('start-time-minute'),
@@ -164,14 +163,11 @@ const PlanForm = (() => {
   /** Selecciona (o limpia, si `groupCode` es null) el grupo activo. `silent` evita cerrar el buscador ni autoguardar (usado al restaurar desde Storage). */
   function selectGroup(groupCode, { silent = false } = {}) {
     selectedGroup = GROUPS_DATA.find((g) => g.group === groupCode) || null;
-    if (selectedGroup) {
-      els.groupSelectedLabel.textContent = `${selectedGroup.course} — ${selectedGroup.group} — ${selectedGroup.schedule}`;
-      els.groupSelectedLabel.hidden = false;
-    } else {
-      els.groupSelectedLabel.hidden = true;
-    }
+    // El propio input queda mostrando el grupo elegido (igual que el campo
+    // de curso) — antes se limpiaba y solo se veía en el texto azul de
+    // abajo, dando la falsa impresión de que no se había seleccionado nada.
+    els.groupSearch.value = selectedGroup ? `${selectedGroup.group} — ${selectedGroup.schedule}` : '';
     if (!silent) {
-      els.groupSearch.value = '';
       els.groupResults.hidden = true;
       debouncedSave();
     }
@@ -180,7 +176,11 @@ const PlanForm = (() => {
   function initGroupPicker() {
     if (typeof GROUPS_DATA === 'undefined') return; // groupsData.js no cargado, degrada a selector inactivo
 
-    els.courseSearch.addEventListener('focus', () => renderCourseResults(els.courseSearch.value));
+    // Al enfocar un campo que ya tiene un valor elegido, se selecciona todo
+    // el texto (como cualquier selector "escribe para cambiar") en vez de
+    // filtrar por ese mismo valor puesto — así se ve la lista completa de
+    // nuevo y basta con escribir para reemplazarlo.
+    els.courseSearch.addEventListener('focus', () => { els.courseSearch.select(); renderCourseResults(''); });
     els.courseSearch.addEventListener('input', () => renderCourseResults(els.courseSearch.value));
     els.courseResults.addEventListener('click', (e) => {
       const item = e.target.closest('.identity-group-item');
@@ -188,7 +188,11 @@ const PlanForm = (() => {
       selectCourse(item.dataset.course);
     });
 
-    els.groupSearch.addEventListener('focus', () => { if (selectedCourseName) renderGroupResults(els.groupSearch.value); });
+    els.groupSearch.addEventListener('focus', () => {
+      if (!selectedCourseName) return;
+      els.groupSearch.select();
+      renderGroupResults('');
+    });
     els.groupSearch.addEventListener('input', () => renderGroupResults(els.groupSearch.value));
     els.groupResults.addEventListener('click', (e) => {
       const item = e.target.closest('.identity-group-item');
