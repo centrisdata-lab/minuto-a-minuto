@@ -625,6 +625,16 @@ img { max-width: 100%; display: block; }
 .readonly-field-wrap input { padding-left: 32px; }
 .readonly-field-wrap:focus-within .readonly-field-icon { color: var(--color-cyan-600); }
 
+/* Los valores calculados automáticamente (ej. duración total) deben leerse
+   claro aunque el input sea readonly — el gris apagado por defecto del
+   navegador da la falsa impresión de que el campo está vacío. */
+.readonly-field-wrap input[readonly] {
+  color: var(--text-primary);
+  font-weight: 700;
+  -webkit-text-fill-color: var(--text-primary);
+  opacity: 1;
+}
+
 .field-hint {
   font-size: 0.74rem;
   color: var(--text-muted);
@@ -958,11 +968,21 @@ img { max-width: 100%; display: block; }
   margin-left: auto;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--text-muted);
-  background: var(--bg-surface-alt);
+  color: var(--color-navy-700);
+  background: rgba(28, 72, 132, 0.12);
   padding: 3px 10px;
   border-radius: var(--radius-pill);
   white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .block-container-duration {
+    color: var(--color-cyan-400);
+    background: rgba(77, 179, 232, 0.16);
+  }
+}
+:root[data-theme="dark"] .block-container-duration {
+  color: var(--color-cyan-400);
+  background: rgba(77, 179, 232, 0.16);
 }
 
 .block-container-toggle .chev {
