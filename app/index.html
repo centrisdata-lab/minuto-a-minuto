@@ -446,7 +446,10 @@
         <form id="admin-password-form" class="identity-form">
           <div class="field">
             <label for="admin-password-input">Contraseña</label>
-            <input type="password" id="admin-password-input" autocomplete="off" />
+            <div class="readonly-field-wrap">
+              <i class="fa-solid fa-lock readonly-field-icon"></i>
+              <input type="password" id="admin-password-input" class="admin-password-input" placeholder="••••••" autocomplete="off" />
+            </div>
           </div>
           <p class="identity-error" id="admin-password-error" hidden>Contraseña incorrecta.</p>
           <button type="submit" class="btn btn-primary">Entrar</button>
