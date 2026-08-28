@@ -433,27 +433,36 @@
     </div>
   </div>
 
-  <!-- ===================== MODAL: Panel de administración ===================== -->
-  <div class="modal-overlay" id="admin-modal" hidden>
-    <div class="modal modal-wide modal-admin" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
-      <button type="button" class="icon-btn admin-modal-close" id="admin-modal-close" title="Cerrar" aria-label="Cerrar">
+  <!-- ===================== PANEL DE ADMINISTRACIÓN (pantalla completa) ===================== -->
+  <div class="admin-overlay" id="admin-modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+    <header class="admin-header">
+      <div class="admin-header-title">
+        <i class="fa-solid fa-user-shield"></i>
+        <h2 id="admin-modal-title">Panel de administración</h2>
+      </div>
+      <button type="button" class="icon-btn" id="admin-modal-close" title="Cerrar" aria-label="Cerrar">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <h3 id="admin-modal-title"><i class="fa-solid fa-user-shield"></i> Panel de administración</h3>
+    </header>
 
-      <div id="admin-password-step">
-        <p>Ingresa la contraseña de administración para ver los envíos de todos los profesores.</p>
-        <form id="admin-password-form" class="identity-form">
-          <div class="field">
-            <label for="admin-password-input">Contraseña</label>
-            <div class="readonly-field-wrap">
-              <i class="fa-solid fa-lock readonly-field-icon"></i>
-              <input type="password" id="admin-password-input" class="admin-password-input" placeholder="••••••" autocomplete="off" />
+    <div class="admin-body">
+      <div id="admin-password-step" class="admin-password-step">
+        <div class="admin-password-card">
+          <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-lock"></i></div>
+          <h3>Acceso restringido</h3>
+          <p>Ingresa la contraseña de administración para ver los envíos de todos los profesores.</p>
+          <form id="admin-password-form" class="identity-form">
+            <div class="field">
+              <label for="admin-password-input">Contraseña</label>
+              <div class="readonly-field-wrap">
+                <i class="fa-solid fa-lock readonly-field-icon"></i>
+                <input type="password" id="admin-password-input" class="admin-password-input" placeholder="••••••" autocomplete="off" />
+              </div>
             </div>
-          </div>
-          <p class="identity-error" id="admin-password-error" hidden>Contraseña incorrecta.</p>
-          <button type="submit" class="btn btn-primary">Entrar</button>
-        </form>
+            <p class="identity-error" id="admin-password-error" hidden>Contraseña incorrecta.</p>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+          </form>
+        </div>
       </div>
 
       <div id="admin-loading-step" hidden class="admin-loading">
@@ -467,9 +476,12 @@
         <button type="button" class="btn btn-primary btn-sm" id="admin-retry">Reintentar</button>
       </div>
 
-      <div id="admin-table-step" hidden>
+      <div id="admin-table-step" hidden class="admin-table-step">
         <div class="admin-table-toolbar">
-          <input type="text" id="admin-search" placeholder="Buscar por profesor, grupo o curso..." />
+          <div class="readonly-field-wrap admin-search-wrap">
+            <i class="fa-solid fa-magnifying-glass readonly-field-icon"></i>
+            <input type="text" id="admin-search" placeholder="Buscar por profesor, grupo o curso..." />
+          </div>
           <button type="button" class="btn btn-icon" id="admin-logout">
             <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión admin
           </button>
@@ -487,7 +499,7 @@
         <p class="admin-empty-state" id="admin-empty-state" hidden>No hay envíos que coincidan con tu búsqueda.</p>
       </div>
 
-      <div id="admin-detail-step" hidden>
+      <div id="admin-detail-step" hidden class="admin-detail-step">
         <button type="button" class="btn btn-ghost btn-sm" id="admin-detail-back">
           <i class="fa-solid fa-arrow-left"></i> Volver a la lista
         </button>
