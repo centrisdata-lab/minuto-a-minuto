@@ -53,7 +53,6 @@ const PlanForm = (() => {
     document.getElementById('btn-add-block').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
     document.getElementById('btn-add-block-bottom').addEventListener('click', () => BlocksManager.addBlock({}, { focus: true }));
 
-    document.getElementById('btn-clear-form').addEventListener('click', handleClearForm);
     els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
 
     initCollapsibleSections();
@@ -452,29 +451,20 @@ const PlanForm = (() => {
     }
   }
 
-  async function handleClearForm() {
-    const confirmed = await ConfirmModal.ask({
-      title: 'Limpiar formulario',
-      message: 'Se borrará toda la información de la planeación (preparación, recomendaciones y retroalimentación). Esta acción no se puede deshacer.',
-      acceptLabel: 'Sí, limpiar',
-    });
-    if (!confirmed) return;
-    resetToEmptyPlan({ keepId: true });
-    save();
-    Toast.info('Formulario reiniciado.');
-  }
-
   function getCurrentPlanObject() {
     return buildPlanObject();
   }
 
   /**
-   * Envía el Minuto a Minuto actual a la base de datos central (Supabase),
-   * para que el panel admin lo vea. Pide nombre + grupo justo antes de
-   * enviar (no bloquea la app al cargar la página). Cada clic en "Enviar"
+   * Un solo botón hace las dos cosas: descarga el PDF del Minuto a Minuto
+   * (siempre funciona, es local) y lo envía a la base de datos central
+   * (Supabase) para que el panel admin lo vea. Pide nombre + grupo justo
+   * antes de enviar (no bloquea la app al cargar la página). Cada clic
    * crea un registro nuevo — no sobrescribe envíos anteriores, así que el
    * profesor puede reenviar tantas veces como quiera (por ejemplo, tras
-   * corregir algo) y el admin ve el historial completo.
+   * corregir algo) y el admin ve el historial completo. Si el envío a la
+   * base de datos falla (sin red, etc.) el PDF ya se descargó igual — no
+   * se pierde nada, solo no queda registrado hasta reintentar.
    */
   async function handleSubmitPlan() {
     if (!els.courseName.value.trim()) {
@@ -491,18 +481,21 @@ const PlanForm = (() => {
     els.btnSubmitPlan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
 
     save();
+    const currentPlan = buildPlanObject();
+    Exporters.exportPdf(currentPlan);
+
     try {
       await SubmissionsApi.submitPlan({
         teacherName: identity.name,
         groupCode: identity.group,
         courseLabel: identity.courseLabel,
         schedule: identity.schedule,
-        plan: buildPlanObject(),
+        plan: currentPlan,
       });
-      Toast.success('Minuto a Minuto enviado correctamente.');
+      Toast.success('PDF descargado y Minuto a Minuto enviado correctamente.');
     } catch (e) {
       console.error('No se pudo enviar el Minuto a Minuto.', e);
-      Toast.warning('No se pudo enviar (revisa tu conexión). Tu planeación sigue guardada en este navegador; puedes intentar enviar de nuevo.');
+      Toast.warning('Se descargó el PDF, pero no se pudo enviar (revisa tu conexión). Tu planeación sigue guardada en este navegador; puedes intentar de nuevo.');
     } finally {
       els.btnSubmitPlan.innerHTML = originalLabel;
       els.btnSubmitPlan.disabled = false;

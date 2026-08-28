@@ -25,11 +25,6 @@ const App = (() => {
       exampleToggle.setAttribute('aria-expanded', String(isOpen));
       exampleToggle.querySelector('span').textContent = isOpen ? 'Ocultar ejemplo' : 'Ver ejemplo';
     });
-
-    document.getElementById('btn-download-image').addEventListener('click', () => {
-      PlanForm.save();
-      Exporters.exportPdf(PlanForm.getCurrentPlanObject());
-    });
   }
 
   return { init };
