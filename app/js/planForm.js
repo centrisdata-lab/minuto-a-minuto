@@ -1,16 +1,16 @@
 /**
  * planForm.js
- * Controla el editor de las 2 etapas de envío (Preparación + Recomendaciones
- * generales, luego Retroalimentación tras el primer envío): carga de datos y
- * autoguardado.
- * Solo existe una planeación activa por navegador (ver storage.js).
+ * Controla el editor del Minuto a Minuto (Preparación + Recomendaciones
+ * generales + Retroalimentación): carga de datos y autoguardado local.
+ * Solo existe una planeación activa por navegador (ver storage.js). El
+ * profesor descarga su PDF con el botón "Descargar imagen" y lo comparte
+ * por el canal que prefiera (no hay envío centralizado dentro de la app).
  */
 
 const PlanForm = (() => {
   let planId = null;
   let planCreatedAt = null;
   let els = {};
-  let submissionState = { submitted: false, submittedAt: null, feedbackSubmitted: false, feedbackSubmittedAt: null };
   const debouncedSave = Utils.debounce(() => save(), 600);
 
   const FEEDBACK_QUESTIONS = ['onTime', 'dua', 'topics'];
@@ -27,12 +27,6 @@ const PlanForm = (() => {
       saveStatus: document.getElementById('save-status'),
       recommendationsNotes: document.getElementById('recommendations-notes'),
       feedbackImprove: document.getElementById('feedback-improve'),
-      recommendationsCard: document.getElementById('card-recommendations'),
-      feedbackCard: document.getElementById('card-feedback'),
-      btnSubmitPlan: document.getElementById('btn-submit-plan'),
-      btnSubmitFeedback: document.getElementById('btn-submit-feedback'),
-      planSubmittedBanner: document.getElementById('plan-submitted-banner'),
-      feedbackSubmittedBanner: document.getElementById('feedback-submitted-banner'),
     };
   }
 
@@ -60,8 +54,6 @@ const PlanForm = (() => {
     initCollapsibleSections();
     initRecommendationsSection();
     initFeedbackSection();
-    els.btnSubmitPlan.addEventListener('click', handleSubmitPlan);
-    els.btnSubmitFeedback.addEventListener('click', handleSubmitFeedback);
 
     loadOrCreate();
   }
@@ -305,7 +297,6 @@ const PlanForm = (() => {
     BlocksManager.loadBlocks(defaultBlocks());
     loadRecommendationsData(null);
     loadFeedbackData(null);
-    applySubmissionState({ submitted: false, feedbackSubmitted: false });
   }
 
   function loadOrCreate() {
@@ -340,7 +331,6 @@ const PlanForm = (() => {
       // plan guardado viene de una versión previa.
       loadRecommendationsData(plan.recommendations || plan.duringClass);
       loadFeedbackData(plan.feedback);
-      applySubmissionState(plan);
     } else {
       resetToEmptyPlan();
     }
@@ -360,15 +350,11 @@ const PlanForm = (() => {
       blocks,
       recommendations,
       feedback,
-      submitted: submissionState.submitted,
-      submittedAt: submissionState.submittedAt,
-      feedbackSubmitted: submissionState.feedbackSubmitted,
-      feedbackSubmittedAt: submissionState.feedbackSubmittedAt,
       progress: calculateProgress(flatSubBlocks, recommendations, feedback),
     };
   }
 
-  /** Calcula el % de diligenciamiento combinando las 2 etapas (uso interno, no se muestra en la UI). */
+  /** Calcula el % de diligenciamiento combinando las 3 secciones (uso interno, no se muestra en la UI). */
   function calculateProgress(subBlocks, recommendations, feedback) {
     let total = 0;
     let filled = 0;
@@ -435,156 +421,6 @@ const PlanForm = (() => {
 
   function getCurrentPlanObject() {
     return buildPlanObject();
-  }
-
-  /* ---------------------------------------------------------------------
-     Envío en dos etapas: "antes" (Minuto a Minuto + recomendaciones) y,
-     tras enviarlo, "después" (retroalimentación). Cada envío queda fijo:
-     una vez enviada una etapa, sus campos se bloquean y no se puede volver
-     a editar (habría que crear una planeación nueva).
-     --------------------------------------------------------------------- */
-
-  function formatSubmittedAt(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
-  }
-
-  /**
-   * Refleja en la UI el estado guardado (`submitted`/`feedbackSubmitted`) de
-   * un plan: bloquea campos y muestra banners si corresponde.
-   *
-   * El botón "Enviar Minuto a Minuto" está oculto por ahora (ver index.html,
-   * #btn-submit-plan) mientras no haya suficientes profesores agregados como
-   * "usuarios de prueba" en Google Cloud para autorizar el envío a Drive —
-   * así que `submitted` nunca se activa desde la UI hoy, y la card de
-   * retroalimentación queda siempre visible (ya no depende de un envío
-   * previo) para que el profesor pueda usarla igual que cualquier otra
-   * sección. Se conserva toda esta lógica de bloqueo por si se retoma el
-   * flujo de envío más adelante.
-   */
-  function applySubmissionState(plan) {
-    submissionState = {
-      submitted: !!(plan && plan.submitted),
-      submittedAt: (plan && plan.submittedAt) || null,
-      feedbackSubmitted: !!(plan && plan.feedbackSubmitted),
-      feedbackSubmittedAt: (plan && plan.feedbackSubmittedAt) || null,
-    };
-    const { submitted, submittedAt, feedbackSubmitted, feedbackSubmittedAt } = submissionState;
-
-    els.recommendationsCard.classList.toggle('is-locked', submitted);
-    els.planSubmittedBanner.hidden = !submitted;
-    els.planSubmittedBanner.querySelector('.js-submitted-at').textContent = formatSubmittedAt(submittedAt);
-    setFormFieldsDisabled(els.recommendationsCard, submitted);
-    BlocksManager.setLocked(submitted);
-
-    els.feedbackCard.classList.toggle('is-locked', feedbackSubmitted);
-    els.btnSubmitFeedback.hidden = feedbackSubmitted;
-    els.feedbackSubmittedBanner.hidden = !feedbackSubmitted;
-    els.feedbackSubmittedBanner.querySelector('.js-submitted-at').textContent = formatSubmittedAt(feedbackSubmittedAt);
-    setFormFieldsDisabled(els.feedbackCard, feedbackSubmitted);
-  }
-
-  function setFormFieldsDisabled(cardEl, disabled) {
-    cardEl.querySelectorAll('input, textarea, select, button.feedback-option').forEach((el) => {
-      el.disabled = disabled;
-    });
-  }
-
-  /**
-   * Registra el envío localmente (respaldo/cache, y lo que hoy usa
-   * localStorage['mam_submissions']) y, si es posible, lo sincroniza con
-   * Google Drive real: sube el Excel del plan a la carpeta compartida y
-   * agrega una fila al Sheet central que lee el panel admin (ver
-   * driveSync.js). Si Drive falla (sin conexión, permiso rechazado, etc.)
-   * el envío local ya quedó guardado igual — no se pierde el trabajo del
-   * profesor, solo no llega al panel admin hasta que reintente.
-   */
-  async function submitToBackend(payload) {
-    try {
-      const key = 'mam_submissions';
-      const existing = JSON.parse(localStorage.getItem(key) || '[]');
-      existing.push(payload);
-      localStorage.setItem(key, JSON.stringify(existing));
-    } catch (e) {
-      console.error('No se pudo registrar el envío localmente.', e);
-    }
-
-    if (typeof DriveSync === 'undefined') return { synced: false };
-
-    try {
-      const identity = TeacherIdentity.getIdentity() || {};
-      const blob = Exporters.exportXlsxBlob(payload.plan);
-      let driveLink = '';
-      if (blob) {
-        const fileName = Exporters.buildFileName(payload.plan.courseName, 'xlsx');
-        const uploaded = await DriveSync.uploadExcelToDrive(blob, fileName);
-        driveLink = uploaded.webViewLink || '';
-      }
-      await DriveSync.appendSubmissionRow([
-        new Date().toISOString(),
-        payload.type,
-        identity.name || '',
-        identity.group || '',
-        identity.courseLabel || '',
-        identity.schedule || '',
-        driveLink,
-        `${payload.plan.progress || 0}%`,
-      ]);
-      return { synced: true };
-    } catch (e) {
-      console.error('No se pudo sincronizar el envío con Google Drive.', e);
-      return { synced: false, error: e };
-    }
-  }
-
-  async function handleSubmitPlan() {
-    if (!els.courseName.value.trim()) {
-      Toast.warning('Escribe el nombre del curso antes de enviar.');
-      els.courseName.focus();
-      return;
-    }
-    els.btnSubmitPlan.disabled = true;
-    const originalLabel = els.btnSubmitPlan.innerHTML;
-    els.btnSubmitPlan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
-
-    const result = await submitToBackend({ type: 'plan', plan: buildPlanObject() });
-
-    els.btnSubmitPlan.innerHTML = originalLabel;
-    els.btnSubmitPlan.disabled = false;
-    submissionState.submitted = true;
-    submissionState.submittedAt = new Date().toISOString();
-    applySubmissionState({ ...submissionState });
-    save();
-
-    if (result.synced) {
-      Toast.success('Minuto a Minuto enviado y sincronizado con Drive. Ahora puedes registrar la retroalimentación al terminar la clase.');
-    } else {
-      Toast.warning('Se guardó tu Minuto a Minuto, pero no se pudo sincronizar con Drive (revisa tu conexión o permisos de Google). Puedes seguir usando la app normalmente.');
-    }
-    els.feedbackCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  async function handleSubmitFeedback() {
-    els.btnSubmitFeedback.disabled = true;
-    const originalLabel = els.btnSubmitFeedback.innerHTML;
-    els.btnSubmitFeedback.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...';
-
-    const result = await submitToBackend({ type: 'feedback', plan: buildPlanObject() });
-
-    els.btnSubmitFeedback.innerHTML = originalLabel;
-    els.btnSubmitFeedback.disabled = false;
-    submissionState.feedbackSubmitted = true;
-    submissionState.feedbackSubmittedAt = new Date().toISOString();
-    applySubmissionState({ ...submissionState });
-    save();
-
-    if (result.synced) {
-      Toast.success('Retroalimentación enviada y sincronizada con Drive. ¡Gracias!');
-    } else {
-      Toast.warning('Se guardó tu retroalimentación, pero no se pudo sincronizar con Drive (revisa tu conexión o permisos de Google).');
-    }
   }
 
   return {
