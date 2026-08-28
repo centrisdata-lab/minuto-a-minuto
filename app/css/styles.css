@@ -399,6 +399,14 @@ img { max-width: 100%; display: block; }
   animation: fadeInUp 0.35s ease both;
 }
 
+/* El selector de grupo despliega un dropdown que debe quedar por encima de
+   las cards siguientes (Preparación, Recomendaciones) — sin esto, el
+   dropdown se pinta detrás de la card siguiente por orden normal del DOM. */
+.group-picker-section {
+  position: relative;
+  z-index: 20;
+}
+
 .card-header {
   display: flex;
   align-items: flex-start;
