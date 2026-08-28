@@ -26,6 +26,17 @@ const Exporters = (() => {
       .filter(Boolean);
   }
 
+  /** Suma la duración de todos los sub-bloques y la formatea igual que el campo "Duración total de la clase" del formulario. */
+  function totalDurationLabel(blocks) {
+    const totalMinutes = flattenBlocks(blocks).reduce((sum, b) => sum + Utils.timeToMinutes(b.duration), 0);
+    if (totalMinutes <= 0) return '';
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} h`;
+    return `${h} h ${m} min`;
+  }
+
   /** Construye un nombre de archivo seguro incluyendo el nombre del curso si existe. */
   function buildFileName(courseName, extension) {
     const base = 'minuto_a_minuto';
@@ -75,9 +86,11 @@ const Exporters = (() => {
       doc.setTextColor(30, 30, 30);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
+      const durationLabel = totalDurationLabel(plan.blocks);
+      const scheduleInfo = `Hora de inicio de la clase: ${plan.startTime || '-'}${durationLabel ? `     |     Duración total: ${durationLabel}` : ''}`;
       const infoText = plan.courseLabel
-        ? `Curso: ${plan.courseLabel}     |     Hora de inicio de la clase: ${plan.startTime || '-'}`
-        : `Hora de inicio de la clase: ${plan.startTime || '-'}`;
+        ? `Curso: ${plan.courseLabel}     |     ${scheduleInfo}`
+        : scheduleInfo;
       doc.text(infoText, 30, 66);
 
       const body = flattenBlocks(plan.blocks).map((b, i) => [
