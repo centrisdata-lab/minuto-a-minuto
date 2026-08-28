@@ -475,6 +475,7 @@ img { max-width: 100%; display: block; }
 .field input[type="date"],
 .field input[type="time"],
 .field input[type="number"],
+.field input[type="password"],
 .field select,
 .field textarea {
   font-family: var(--font-body);
