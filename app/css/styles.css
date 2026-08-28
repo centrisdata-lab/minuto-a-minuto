@@ -211,15 +211,6 @@ img { max-width: 100%; display: block; }
   gap: var(--space-3);
 }
 
-/* Botón de tema: vive dentro del header de fondo fijo claro, por eso no usa
-   las variables --bg-surface-alt/--text-secondary (que sí cambian con el tema). */
-#theme-toggle.icon-btn {
-  border: 1px solid #e1e7f0;
-  background: #eef2f8;
-  color: #52607a;
-}
-#theme-toggle.icon-btn:hover { background: #e1e7f0; color: #14213d; }
-
 .icon-btn {
   width: 40px;
   height: 40px;
