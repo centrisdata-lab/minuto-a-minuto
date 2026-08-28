@@ -22,6 +22,8 @@ const PlanForm = (() => {
   function cacheEls() {
     els = {
       form: document.getElementById('plan-form'),
+      courseSearch: document.getElementById('course-search'),
+      courseResults: document.getElementById('course-results'),
       groupSearch: document.getElementById('group-search'),
       groupResults: document.getElementById('group-results'),
       groupSelectedLabel: document.getElementById('group-selected'),
@@ -98,36 +100,75 @@ const PlanForm = (() => {
   }
 
   /* ---------------------------------------------------------------------
-     Selector de "Curso, grupo y horario": buscador sobre GROUPS_DATA que
-     fija curso+grupo+horario reales en un solo paso, visible en ambos
-     modos (Minuto a Minuto y Retroalimentación) — así se pide una sola vez
-     y el modal de envío (teacherIdentity.js) ya no lo vuelve a preguntar.
+     Selector de "Curso, grupo y horario" en 2 pasos: primero se elige el
+     curso (buscador sobre los nombres únicos de GROUPS_DATA), y solo
+     entonces se habilita el buscador de grupo, ya filtrado a los grupos de
+     ese curso — más fácil de encontrar que buscar entre los 91 grupos a la
+     vez. Visible en ambos modos (Minuto a Minuto y Retroalimentación); se
+     elige una sola vez y el modal de envío (teacherIdentity.js) ya no lo
+     vuelve a preguntar.
      --------------------------------------------------------------------- */
+  let selectedCourseName = null;
+
   function groupMatchLabel(g) {
-    return `${g.course} — ${g.group} — ${g.schedule}`;
+    return `${g.group} — ${g.schedule}`;
+  }
+
+  function renderCourseResults(query) {
+    const courseNames = [...new Set(GROUPS_DATA.map((g) => g.course))].sort((a, b) => a.localeCompare(b, 'es'));
+    const q = query.trim().toLowerCase();
+    const filtered = !q ? courseNames : courseNames.filter((c) => c.toLowerCase().includes(q));
+    if (filtered.length === 0) {
+      els.courseResults.innerHTML = '<div class="identity-group-empty">Sin resultados. Intenta con otro nombre.</div>';
+    } else {
+      els.courseResults.innerHTML = filtered.map((c) => `
+        <button type="button" class="identity-group-item" data-course="${Utils.escapeHtml(c)}">
+          <span class="identity-group-course">${Utils.escapeHtml(c)}</span>
+        </button>
+      `).join('');
+    }
+    els.courseResults.hidden = false;
   }
 
   function renderGroupResults(query) {
+    const groupsInCourse = GROUPS_DATA.filter((g) => g.course === selectedCourseName);
     const q = query.trim().toLowerCase();
-    const filtered = !q ? GROUPS_DATA : GROUPS_DATA.filter((g) => groupMatchLabel(g).toLowerCase().includes(q));
+    const filtered = !q ? groupsInCourse : groupsInCourse.filter((g) => groupMatchLabel(g).toLowerCase().includes(q));
     if (filtered.length === 0) {
-      els.groupResults.innerHTML = '<div class="identity-group-empty">Sin resultados. Intenta con otro nombre de curso.</div>';
+      els.groupResults.innerHTML = '<div class="identity-group-empty">Sin resultados para este curso.</div>';
     } else {
-      els.groupResults.innerHTML = filtered.slice(0, 40).map((g) => `
+      els.groupResults.innerHTML = filtered.map((g) => `
         <button type="button" class="identity-group-item" data-group="${g.group}">
-          <span class="identity-group-course">${Utils.escapeHtml(g.course)}</span>
-          <span class="identity-group-meta">${Utils.escapeHtml(g.group)} · ${Utils.escapeHtml(g.schedule)}</span>
+          <span class="identity-group-course">${Utils.escapeHtml(g.group)}</span>
+          <span class="identity-group-meta">${Utils.escapeHtml(g.schedule)}</span>
         </button>
       `).join('');
     }
     els.groupResults.hidden = false;
   }
 
+  /** Elige el curso del paso 1: habilita el buscador de grupo y limpia cualquier grupo ya elegido de un curso distinto. */
+  function selectCourse(courseName, { silent = false } = {}) {
+    selectedCourseName = courseName || null;
+    els.courseSearch.value = selectedCourseName || '';
+    if (selectedGroup && selectedGroup.course !== selectedCourseName) {
+      selectGroup(null, { silent: true });
+    }
+    els.groupSearch.disabled = !selectedCourseName;
+    els.groupSearch.placeholder = selectedCourseName ? 'Busca por grupo u horario...' : 'Elige primero un curso...';
+    if (!silent) {
+      els.courseResults.hidden = true;
+      els.groupSearch.value = '';
+      if (selectedCourseName) els.groupSearch.focus();
+      debouncedSave();
+    }
+  }
+
   /** Selecciona (o limpia, si `groupCode` es null) el grupo activo. `silent` evita cerrar el buscador ni autoguardar (usado al restaurar desde Storage). */
   function selectGroup(groupCode, { silent = false } = {}) {
     selectedGroup = GROUPS_DATA.find((g) => g.group === groupCode) || null;
     if (selectedGroup) {
-      els.groupSelectedLabel.textContent = groupMatchLabel(selectedGroup);
+      els.groupSelectedLabel.textContent = `${selectedGroup.course} — ${selectedGroup.group} — ${selectedGroup.schedule}`;
       els.groupSelectedLabel.hidden = false;
     } else {
       els.groupSelectedLabel.hidden = true;
@@ -142,15 +183,27 @@ const PlanForm = (() => {
   function initGroupPicker() {
     if (typeof GROUPS_DATA === 'undefined') return; // groupsData.js no cargado, degrada a selector inactivo
 
-    els.groupSearch.addEventListener('focus', () => renderGroupResults(els.groupSearch.value));
+    els.courseSearch.addEventListener('focus', () => renderCourseResults(els.courseSearch.value));
+    els.courseSearch.addEventListener('input', () => renderCourseResults(els.courseSearch.value));
+    els.courseResults.addEventListener('click', (e) => {
+      const item = e.target.closest('.identity-group-item');
+      if (!item) return;
+      selectCourse(item.dataset.course);
+    });
+
+    els.groupSearch.addEventListener('focus', () => { if (selectedCourseName) renderGroupResults(els.groupSearch.value); });
     els.groupSearch.addEventListener('input', () => renderGroupResults(els.groupSearch.value));
     els.groupResults.addEventListener('click', (e) => {
       const item = e.target.closest('.identity-group-item');
       if (!item) return;
       selectGroup(item.dataset.group);
     });
+
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.identity-group-field')) els.groupResults.hidden = true;
+      if (!e.target.closest('.identity-group-field')) {
+        els.courseResults.hidden = true;
+        els.groupResults.hidden = true;
+      }
     });
   }
 
@@ -390,6 +443,7 @@ const PlanForm = (() => {
       planId = null;
       planCreatedAt = null;
     }
+    selectCourse(null, { silent: true });
     selectGroup(null, { silent: true });
     els.startTime.value = '09:00';
     syncStartTimePickerFromValue();
@@ -402,6 +456,7 @@ const PlanForm = (() => {
     if (plan) {
       planId = plan.id;
       planCreatedAt = plan.createdAt || null;
+      selectCourse(plan.courseLabel || null, { silent: true });
       selectGroup(plan.groupCode || null, { silent: true });
       els.startTime.value = plan.startTime || '09:00';
       syncStartTimePickerFromValue();
@@ -519,10 +574,15 @@ const PlanForm = (() => {
    * base de datos falla (sin red, etc.) el PDF ya se descargó igual — no
    * se pierde nada, solo no queda registrado hasta reintentar.
    */
+  /** Lleva el foco al campo que falta completar del selector de curso/grupo. */
+  function focusMissingGroupField() {
+    Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
+    (selectedCourseName ? els.groupSearch : els.courseSearch).focus();
+  }
+
   async function handleSubmitPlan() {
     if (!selectedGroup) {
-      Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
-      els.groupSearch.focus();
+      focusMissingGroupField();
       return;
     }
 
@@ -568,8 +628,7 @@ const PlanForm = (() => {
    */
   async function handleSubmitFeedback() {
     if (!selectedGroup) {
-      Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
-      els.groupSearch.focus();
+      focusMissingGroupField();
       return;
     }
 

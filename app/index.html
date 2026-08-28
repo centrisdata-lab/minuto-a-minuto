@@ -93,15 +93,25 @@
           </div>
         </div>
 
-        <!-- ===== Curso, grupo y horario: visible en ambos modos, se pide una sola vez ===== -->
+        <!-- ===== Curso, grupo y horario: visible en ambos modos, se pide una sola vez =====
+             Dos pasos: primero el curso, luego el grupo (ya filtrado a los
+             grupos de ese curso) — más fácil de encontrar que buscar entre
+             los 91 grupos a la vez. -->
         <section class="card group-picker-section">
           <div class="card-body">
-            <div class="field identity-group-field">
-              <label for="group-search">Curso, grupo y horario</label>
-              <input type="text" id="group-search" placeholder="Busca por curso, grupo u horario..." autocomplete="off" />
-              <span class="identity-group-selected" id="group-selected" hidden></span>
-              <div class="identity-group-results" id="group-results" hidden></div>
+            <div class="general-fields-row">
+              <div class="field field-inline identity-group-field" style="max-width:340px;">
+                <label for="course-search">Curso</label>
+                <input type="text" id="course-search" placeholder="Busca tu curso..." autocomplete="off" />
+                <div class="identity-group-results" id="course-results" hidden></div>
+              </div>
+              <div class="field field-inline identity-group-field" style="max-width:340px;">
+                <label for="group-search">Grupo y horario</label>
+                <input type="text" id="group-search" placeholder="Elige primero un curso..." autocomplete="off" disabled />
+                <div class="identity-group-results" id="group-results" hidden></div>
+              </div>
             </div>
+            <span class="identity-group-selected" id="group-selected" hidden></span>
           </div>
         </section>
 
