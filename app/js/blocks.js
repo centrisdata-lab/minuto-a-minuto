@@ -413,12 +413,33 @@ const BlocksManager = (() => {
     onChangeCallback();
   }
 
-  /** Numera cada bloque contenedor ("Bloque 1", "Bloque 2"...) según su posición en el documento. */
+  /** Nombres fijos de los 3 bloques prediseñados del Minuto a Minuto (ver defaultBlocks en planForm.js). */
+  const BLOCK_TITLES = ['Introducción', 'Desarrollo del tema', 'Preguntas'];
+
+  /**
+   * Aclaración fija bajo el nombre del último sub-bloque del bloque 3
+   * ("Preguntas e inquietudes") — se aplica por posición, no se guarda en
+   * Storage, para que siga apareciendo aunque el plan ya esté guardado
+   * (igual criterio que BLOCK_TITLES).
+   */
+  const LAST_SUB_BLOCK_HINT = { containerIndex: 2, text: 'Sobre la clase y sobre el Campus' };
+
+  /** Numera cada bloque contenedor ("Bloque 1 - Introducción", "Bloque 2 - Desarrollo del tema"...) según su posición en el documento. */
   function renumberBlocks() {
-    [...listEl.querySelectorAll('.block-container')].forEach((node, i) => {
+    const containers = [...listEl.querySelectorAll('.block-container')];
+    containers.forEach((node, i) => {
       node.querySelector('.block-number').textContent = String(i + 1);
-      node.querySelector('.block-container-title').textContent = `Bloque ${i + 1}`;
+      const title = BLOCK_TITLES[i] ? `Bloque ${i + 1} - ${BLOCK_TITLES[i]}` : `Bloque ${i + 1}`;
+      node.querySelector('.block-container-title').textContent = title;
     });
+
+    const hintContainer = containers[LAST_SUB_BLOCK_HINT.containerIndex];
+    const hintSubBlock = hintContainer?.querySelectorAll('.sub-block-card')[0];
+    const hintEl = hintSubBlock?.querySelector('.js-name-hint');
+    if (hintEl) {
+      hintEl.textContent = LAST_SUB_BLOCK_HINT.text;
+      hintEl.hidden = false;
+    }
   }
 
   /**
