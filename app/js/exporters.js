@@ -44,12 +44,7 @@ const Exporters = (() => {
   /** Suma la duración de todos los sub-bloques y la formatea igual que el campo "Duración total de la clase" del formulario. */
   function totalDurationLabel(blocks) {
     const totalMinutes = flattenBlocks(blocks).reduce((sum, b) => sum + Utils.timeToMinutes(b.duration), 0);
-    if (totalMinutes <= 0) return '';
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (h === 0) return `${m} min`;
-    if (m === 0) return `${h} h`;
-    return `${h} h ${m} min`;
+    return Utils.minutesToDurationLabel(totalMinutes, { emptyIfZero: true });
   }
 
   /** Construye un nombre de archivo seguro incluyendo el nombre del curso si existe. */

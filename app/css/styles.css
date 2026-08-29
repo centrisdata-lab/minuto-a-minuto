@@ -37,7 +37,7 @@
 
   --text-primary: #14213d;
   --text-secondary: #52607a;
-  --text-muted: #8894ab;
+  --text-muted: #5f6b83; /* oscurecido vs. el tono original (#8894ab) para alcanzar contraste AA (4.5:1) sobre --bg-surface y --bg-surface-alt */
   --text-on-dark: #f4f7fb;
 
   --shadow-sm: 0 1px 2px rgba(13, 31, 60, 0.06), 0 1px 1px rgba(13, 31, 60, 0.04);
@@ -295,28 +295,6 @@ img { max-width: 100%; display: block; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: var(--radius-sm);
-  background: none;
-  border: none;
-  text-align: left;
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
-}
-.dropdown-item:hover { background: var(--bg-surface-alt); }
-.dropdown-item i { width: 16px; color: var(--color-cyan-600); }
-.dropdown-item div { display: flex; flex-direction: column; align-items: flex-start; }
-.dropdown-item div span { font-size: 0.72rem; color: var(--text-muted); font-weight: 400; }
-.dropdown-item-danger, .dropdown-item-danger i { color: var(--color-danger); }
-.dropdown-item-danger:hover { background: rgba(214, 69, 69, 0.08); }
-
 /* ==========================================================================
    EDITOR
    ========================================================================== */
@@ -356,26 +334,7 @@ img { max-width: 100%; display: block; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Dropdown (descargar) */
-.dropdown { position: relative; }
-.dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  width: 260px;
-  padding: 8px;
-  display: none;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 25;
-}
-.dropdown-menu.open { display: flex; animation: fadeInUp 0.15s ease both; }
 .chev { font-size: 0.7rem; margin-left: 2px; transition: transform var(--transition-fast); }
-#btn-download-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
 
 /* ==========================================================================
    CARDS (secciones del formulario)
@@ -408,7 +367,6 @@ img { max-width: 100%; display: block; }
 
 .card-header h3 { font-size: 1.1rem; margin-bottom: 2px; }
 .card-header p { font-size: 0.85rem; }
-.card-header-action { margin-left: auto; flex-shrink: 0; }
 
 .card-header-icon {
   width: 44px;
@@ -480,6 +438,13 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
   border-color: var(--border-color-strong);
+}
+/* El anillo de foco cian es la regla de oro del sistema de diseño — se
+   combina con la elevación de hover en vez de perderla al enfocar con
+   teclado. */
+.mode-card:focus-visible {
+  box-shadow: var(--shadow-md), var(--shadow-focus);
+  outline: none;
 }
 
 .mode-card-icon {
@@ -776,50 +741,6 @@ img { max-width: 100%; display: block; }
   font-style: italic;
   margin-top: var(--space-3);
 }
-
-/* ==========================================================================
-   CHECKLIST (Durante la clase)
-   ========================================================================== */
-.checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.checklist-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-.checklist-item:hover { background: var(--bg-surface-alt); }
-.checklist-item input { position: absolute; opacity: 0; width: 0; height: 0; }
-
-.checklist-box {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 2px solid var(--border-color-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: transparent;
-  font-size: 0.7rem;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-.checklist-item input:checked ~ .checklist-box {
-  background: var(--color-cyan-500);
-  border-color: var(--color-cyan-500);
-  color: #fff;
-}
-.checklist-item input:focus-visible ~ .checklist-box { box-shadow: var(--shadow-focus); }
-
-.checklist-text { font-size: 0.92rem; color: var(--text-primary); }
-.checklist-item input:checked ~ .checklist-text { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: var(--border-color-strong); }
 
 /* ==========================================================================
    FEEDBACK (Después de la clase)
@@ -1280,17 +1201,6 @@ img { max-width: 100%; display: block; }
 /* ---------- Formulario de identidad (nombre + selector de grupo con buscador), pedido al enviar ---------- */
 .identity-form { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .identity-group-field { position: relative; }
-.course-name-field { position: relative; }
-.identity-group-selected {
-  display: block;
-  margin-top: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-cyan-600);
-  background: rgba(33, 150, 214, 0.08);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-}
 .identity-group-results {
   position: absolute;
   top: calc(100% + 4px);
@@ -1412,8 +1322,6 @@ img { max-width: 100%; display: block; }
 .admin-table-step { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5); }
 .admin-table-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
 .admin-table-wrap { max-height: none; }
-.admin-link { color: var(--color-cyan-600); font-weight: 600; white-space: nowrap; }
-.admin-link-empty { color: var(--text-muted); }
 .admin-empty-state { text-align: center; color: var(--text-muted); padding: var(--space-6) 0; margin: 0; }
 
 /* ---------- Badge de estado del informe (Completo / Solo plan / Solo retro.) ---------- */
@@ -1489,8 +1397,7 @@ img { max-width: 100%; display: block; }
   .site-header, .editor-toolbar, .btn-dashed, .btn-dashed-sm,
   .block-card-actions, .block-card-drag,
   .block-container-actions, .block-container-drag,
-  .toast-container, .site-footer,
-  .card-header-action { display: none !important; }
+  .toast-container, .site-footer { display: none !important; }
   .editor { padding: 0; }
   .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
   .sub-blocks-list { display: flex !important; } /* que se impriman aunque el bloque esté colapsado */
@@ -1514,14 +1421,15 @@ img { max-width: 100%; display: block; }
   .block-card-actions { flex-direction: row; }
   .block-container-drag { display: none; }
   .block-container-toggle { flex-wrap: wrap; }
-  .block-container-duration { margin-left: 42px; } /* alinea bajo el título cuando el badge baja de línea */
+  /* Excepción consciente a la escala de espaciado: 42px no es un --space-*,
+     pero es el valor exacto que alinea el badge bajo el título cuando baja
+     de línea (ancho del ícono de arrastre + gap), no un descuido. */
+  .block-container-duration { margin-left: 42px; }
   .editor-toolbar { flex-direction: column; align-items: stretch; }
   .editor-toolbar-actions { justify-content: stretch; }
   .editor-toolbar-actions .btn { flex: 1; justify-content: center; }
-  .btn-text-sm { display: none; }
 
   .card-header { flex-wrap: wrap; }
-  .card-header-action { margin-left: 0; width: 100%; justify-content: center; }
 
   .general-fields-row { flex-direction: column; }
   .general-fields-row .field { max-width: none !important; }

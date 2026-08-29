@@ -1,11 +1,15 @@
 /**
  * blocks.js
- * Maneja la jerarquía de dos niveles del Minuto a Minuto: "bloques"
- * contenedores colapsables (numerados "Bloque 1", "Bloque 2"...), cada uno
- * con una lista de "sub-bloques" (nombre, duración, actividad, recursos,
- * responsable). Crear, eliminar, duplicar y reordenar funcionan en ambos
- * niveles; la hora de inicio se calcula en cascada recorriendo todos los
- * sub-bloques de todos los bloques en orden de documento.
+ * Maneja la jerarquía de dos niveles del Minuto a Minuto: 3 "bloques"
+ * contenedores fijos y prediseñados (numerados "Bloque 1 - Introducción",
+ * "Bloque 2 - Desarrollo del tema", "Bloque 3 - Preguntas"), cada uno con
+ * una lista de "sub-bloques" (nombre, duración, actividad, recursos,
+ * responsable). No hay botón para agregar un bloque contenedor nuevo (se
+ * quitó a propósito, la estructura de 3 bloques es fija) — pero sí se
+ * pueden seguir eliminando/duplicando bloques existentes, y agregando,
+ * eliminando, duplicando y reordenando sub-bloques dentro de cada uno. La
+ * hora de inicio se calcula en cascada recorriendo todos los sub-bloques de
+ * todos los bloques en orden de documento.
  */
 
 const BlocksManager = (() => {
@@ -45,28 +49,44 @@ const BlocksManager = (() => {
      Sub-bloques (fila con nombre, duración, actividad, recursos, responsable)
      --------------------------------------------------------------------- */
 
+  /**
+   * Patrón "texto fijo + lápiz para editar", compartido por nombre,
+   * duración y nota de bloque (antes había 3 copias casi idénticas de
+   * enter/exit edit mode — una por campo). `wrap` es el contenedor que
+   * lleva la clase `.is-editing`, `input` es el campo real, `extraEl`
+   * (opcional) es un elemento adicional que también debe mostrarse/
+   * ocultarse junto al input (ej. el sufijo "min" de duración).
+   */
+  function enterEditMode(wrap, input, { extraEl } = {}) {
+    wrap.classList.add('is-editing');
+    input.hidden = false;
+    if (extraEl) extraEl.hidden = false;
+    input.focus();
+    if (typeof input.select === 'function') input.select();
+  }
+
+  function exitEditMode(wrap, input, { extraEl, onExit } = {}) {
+    wrap.classList.remove('is-editing');
+    input.hidden = true;
+    if (extraEl) extraEl.hidden = true;
+    if (onExit) onExit(input.value);
+  }
+
   function updateNameDisplay(nameDisplay, value) {
     nameDisplay.textContent = value.trim() || 'Sin nombre';
   }
 
   /** Muestra el input de nombre (oculta el texto fijo) y le da foco para editar. */
   function enterNameEditMode(subBlockNode) {
-    const wrap = subBlockNode.querySelector('.js-name-display-wrap');
-    wrap.classList.add('is-editing');
-    const input = subBlockNode.querySelector('.js-block-name');
-    input.hidden = false;
-    input.focus();
-    input.select();
+    enterEditMode(subBlockNode.querySelector('.js-name-display-wrap'), subBlockNode.querySelector('.js-block-name'));
   }
 
   /** Vuelve a mostrar el nombre como texto fijo, actualizado con lo escrito. */
   function exitNameEditMode(subBlockNode) {
-    const wrap = subBlockNode.querySelector('.js-name-display-wrap');
-    wrap.classList.remove('is-editing');
-    const input = subBlockNode.querySelector('.js-block-name');
     const display = subBlockNode.querySelector('.js-name-display');
-    input.hidden = true;
-    updateNameDisplay(display, input.value);
+    exitEditMode(subBlockNode.querySelector('.js-name-display-wrap'), subBlockNode.querySelector('.js-block-name'), {
+      onExit: (value) => updateNameDisplay(display, value),
+    });
   }
 
   function updateDurationDisplay(durationDisplay, minutes) {
@@ -75,24 +95,24 @@ const BlocksManager = (() => {
 
   /** Muestra el input de duración (oculta el texto fijo) y le da foco para editar. */
   function enterDurationEditMode(subBlockNode) {
-    const wrap = subBlockNode.querySelector('.js-duration-display-wrap');
-    wrap.classList.add('is-editing');
-    const input = subBlockNode.querySelector('.js-block-duration-min');
-    input.hidden = false;
-    subBlockNode.querySelector('.duration-unit').hidden = false;
-    input.focus();
-    input.select();
+    enterEditMode(
+      subBlockNode.querySelector('.js-duration-display-wrap'),
+      subBlockNode.querySelector('.js-block-duration-min'),
+      { extraEl: subBlockNode.querySelector('.duration-unit') },
+    );
   }
 
   /** Vuelve a mostrar la duración como texto fijo, actualizada con lo escrito. */
   function exitDurationEditMode(subBlockNode) {
-    const wrap = subBlockNode.querySelector('.js-duration-display-wrap');
-    wrap.classList.remove('is-editing');
-    const input = subBlockNode.querySelector('.js-block-duration-min');
     const display = subBlockNode.querySelector('.js-duration-display');
-    input.hidden = true;
-    subBlockNode.querySelector('.duration-unit').hidden = true;
-    updateDurationDisplay(display, input.value || 5);
+    exitEditMode(
+      subBlockNode.querySelector('.js-duration-display-wrap'),
+      subBlockNode.querySelector('.js-block-duration-min'),
+      {
+        extraEl: subBlockNode.querySelector('.duration-unit'),
+        onExit: (value) => updateDurationDisplay(display, value || 5),
+      },
+    );
   }
 
   function createSubBlockElement(data = {}) {
@@ -263,20 +283,14 @@ const BlocksManager = (() => {
   }
 
   function enterNoteEditMode(containerNode) {
-    const wrap = containerNode.querySelector('.js-block-note-wrap');
-    wrap.classList.add('is-editing');
-    const input = containerNode.querySelector('.js-block-note-input');
-    input.hidden = false;
-    input.focus();
+    enterEditMode(containerNode.querySelector('.js-block-note-wrap'), containerNode.querySelector('.js-block-note-input'));
   }
 
   function exitNoteEditMode(containerNode) {
-    const wrap = containerNode.querySelector('.js-block-note-wrap');
-    wrap.classList.remove('is-editing');
-    const input = containerNode.querySelector('.js-block-note-input');
     const display = containerNode.querySelector('.js-block-note-display');
-    input.hidden = true;
-    updateNoteDisplay(display, input.value);
+    exitEditMode(containerNode.querySelector('.js-block-note-wrap'), containerNode.querySelector('.js-block-note-input'), {
+      onExit: (value) => updateNoteDisplay(display, value),
+    });
   }
 
   /** Configura el bloque de nota opcional de un contenedor (texto-fijo+lápiz, o botón "Agregar nota" si aún no tiene). */
@@ -477,12 +491,7 @@ const BlocksManager = (() => {
   }
 
   function formatTotalDuration(totalMinutes) {
-    if (totalMinutes <= 0) return '';
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (h === 0) return `${m} min`;
-    if (m === 0) return `${h} h`;
-    return `${h} h ${m} min`;
+    return Utils.minutesToDurationLabel(totalMinutes, { emptyIfZero: true });
   }
 
   function extractContainerData(node) {

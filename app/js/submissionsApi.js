@@ -14,10 +14,32 @@
 const SubmissionsApi = (() => {
   const SUPABASE_URL = 'https://uctkoqtiuzoujinnvhco.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_PFXpLO2N5W3XIT9lbXou4A_4UHNFy7n';
+  const REQUEST_TIMEOUT_MS = 15000;
+
+  /**
+   * `fetch` con límite de tiempo: si Supabase no responde en
+   * REQUEST_TIMEOUT_MS, aborta la petición en vez de dejarla colgada para
+   * siempre (sin esto, una red lenta deja el panel admin en "Cargando..."
+   * indefinidamente, sin error ni forma de recuperarse).
+   */
+  async function fetchWithTimeout(url, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        throw new Error('La conexión tardó demasiado. Verifica tu internet e intenta de nuevo.');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   /** Registra un envío del Minuto a Minuto (sin recomendaciones — ver planForm.js). `stage: 'plan'` lo distingue de un envío de retroalimentación. */
   async function submitPlan({ teacherName, teacherRole, groupCode, courseLabel, schedule, plan }) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/submissions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,7 +72,7 @@ const SubmissionsApi = (() => {
    * aquí es un objeto reducido (solo id/fechas/curso/horario/feedback).
    */
   async function submitFeedback({ teacherName, teacherRole, groupCode, courseLabel, schedule, plan }) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/submissions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -78,7 +100,7 @@ const SubmissionsApi = (() => {
 
   /** Lee todos los envíos registrados (usado por el panel admin), del más reciente al más antiguo. */
   async function fetchAllSubmissions() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?select=*&order=created_at.desc`, {
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/submissions?select=*&order=created_at.desc`, {
       headers: {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -93,7 +115,7 @@ const SubmissionsApi = (() => {
 
   /** Elimina un envío por su id (usado por el panel admin — requiere la policy de DELETE en Supabase). */
   async function deleteSubmission(id) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/submissions?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: {
         apikey: SUPABASE_ANON_KEY,

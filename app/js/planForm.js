@@ -563,6 +563,12 @@ const PlanForm = (() => {
     return buildPlanObject();
   }
 
+  /** Lleva el foco al campo que falta completar del selector de curso/grupo. */
+  function focusMissingGroupField() {
+    Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
+    (selectedCourseName ? els.groupSearch : els.courseSearch).focus();
+  }
+
   /**
    * Un solo botón hace las dos cosas: descarga el PDF del Minuto a Minuto
    * (siempre funciona, es local) y lo envía a la base de datos central
@@ -575,12 +581,6 @@ const PlanForm = (() => {
    * base de datos falla (sin red, etc.) el PDF ya se descargó igual — no
    * se pierde nada, solo no queda registrado hasta reintentar.
    */
-  /** Lleva el foco al campo que falta completar del selector de curso/grupo. */
-  function focusMissingGroupField() {
-    Toast.warning('Selecciona tu curso, grupo y horario antes de enviar.');
-    (selectedCourseName ? els.groupSearch : els.courseSearch).focus();
-  }
-
   async function handleSubmitPlan() {
     if (!selectedGroup) {
       focusMissingGroupField();

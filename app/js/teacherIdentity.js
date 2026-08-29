@@ -12,6 +12,7 @@
 const TeacherIdentity = (() => {
   let els = {};
   let resolveCurrent = null;
+  let releaseFocusTrap = null;
 
   function cacheEls() {
     els = {
@@ -33,6 +34,9 @@ const TeacherIdentity = (() => {
     });
     els.cancelBtn.addEventListener('click', () => finish(null));
     els.overlay.addEventListener('click', (e) => { if (e.target === els.overlay) finish(null); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !els.overlay.hidden) finish(null);
+    });
   }
 
   /** Abre el modal y devuelve una Promise que resuelve con la identidad elegida, o null si se cancela. */
@@ -44,11 +48,13 @@ const TeacherIdentity = (() => {
       els.errorEl.hidden = true;
       els.overlay.hidden = false;
       els.nameInput.focus();
+      releaseFocusTrap = Utils.trapFocus(els.overlay);
     });
   }
 
   function finish(result) {
     els.overlay.hidden = true;
+    if (releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
     const resolve = resolveCurrent;
     resolveCurrent = null;
     if (resolve) resolve(result);

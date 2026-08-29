@@ -17,6 +17,8 @@ const AdminPanel = (() => {
   let els = {};
   let allSubmissions = [];
   let currentDetailGroup = null;
+  let releaseFocusTrap = null;
+  const debouncedRenderRows = Utils.debounce(() => renderRows(els.searchInput.value), 150);
 
   function cacheEls() {
     els = {
@@ -53,7 +55,7 @@ const AdminPanel = (() => {
       e.preventDefault();
       handlePasswordSubmit();
     });
-    els.searchInput.addEventListener('input', () => renderRows(els.searchInput.value));
+    els.searchInput.addEventListener('input', debouncedRenderRows);
     els.logoutBtn.addEventListener('click', logout);
     els.retryBtn.addEventListener('click', loadSubmissions);
     els.tableBody.addEventListener('click', (e) => {
@@ -70,6 +72,9 @@ const AdminPanel = (() => {
       if (currentDetailGroup && currentDetailGroup.feedbackSubmission) {
         handleDelete(currentDetailGroup.feedbackSubmission.id, { fromDetail: true });
       }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !els.overlay.hidden) close();
     });
   }
 
@@ -89,6 +94,7 @@ const AdminPanel = (() => {
     els.overlay.hidden = false;
     els.passwordError.hidden = true;
     els.passwordInput.value = '';
+    releaseFocusTrap = Utils.trapFocus(els.overlay);
     if (hasAdminSession()) {
       loadSubmissions();
     } else {
@@ -99,6 +105,7 @@ const AdminPanel = (() => {
 
   function close() {
     els.overlay.hidden = true;
+    if (releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
   }
 
   function handlePasswordSubmit() {
@@ -212,12 +219,25 @@ const AdminPanel = (() => {
 
   function showDetail(key) {
     const group = groupSubmissions(allSubmissions).find((g) => g.key === key);
-    if (!group) return;
+    if (!group) {
+      // Puede pasar si otro admin eliminó el registro justo antes de este
+      // clic (dos sesiones de panel admin abiertas a la vez) — se avisa en
+      // vez de dejar el botón "sin responder" y se refresca la tabla.
+      Toast.warning('Este envío ya no existe; puede haber sido eliminado.');
+      renderRows(els.searchInput.value);
+      return;
+    }
     currentDetailGroup = group;
     els.detailBody.innerHTML = renderGroupDetailHtml(group);
-    els.detailDeletePlan.disabled = !group.planSubmission;
-    els.detailDeleteFeedback.disabled = !group.feedbackSubmission;
+    setDeleteButtonState(els.detailDeletePlan, group.planSubmission, 'el Minuto a Minuto');
+    setDeleteButtonState(els.detailDeleteFeedback, group.feedbackSubmission, 'la retroalimentación');
     showStep('detail');
+  }
+
+  /** Deshabilita el botón de eliminar cuando ese registro no existe, y explica por qué (para lectores de pantalla, no solo visualmente). */
+  function setDeleteButtonState(btn, submission, whatLabel) {
+    btn.disabled = !submission;
+    btn.title = submission ? '' : `Aún no se ha diligenciado ${whatLabel} — no hay nada que eliminar.`;
   }
 
   /** Pide confirmación y elimina un envío puntual (plan o feedback), tanto desde la vista de detalle. */
@@ -236,8 +256,18 @@ const AdminPanel = (() => {
       allSubmissions = allSubmissions.filter((s) => String(s.id) !== String(id));
       Toast.success('Envío eliminado.');
       if (fromDetail) {
-        currentDetailGroup = null;
-        showStep('table');
+        // Si el grupo todavía tiene el otro registro (plan o feedback), se
+        // queda viendo el detalle actualizado en vez de ser expulsado a la
+        // tabla — solo vuelve a la tabla si ya no queda nada de ese grupo.
+        const remainingGroup = currentDetailGroup
+          ? groupSubmissions(allSubmissions).find((g) => g.key === currentDetailGroup.key)
+          : null;
+        if (remainingGroup) {
+          showDetail(remainingGroup.key);
+        } else {
+          currentDetailGroup = null;
+          showStep('table');
+        }
       }
       renderRows(els.searchInput.value);
     } catch (e) {

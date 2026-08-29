@@ -29,15 +29,27 @@ const Utils = {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   },
 
-  /** Duración "HH:MM" -> texto legible, ej. "0:05" -> "5 min". */
-  durationLabel(hhmm) {
-    const mins = this.timeToMinutes(hhmm);
-    if (mins <= 0) return '0 min';
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
+  /**
+   * Minutos totales -> texto legible, ej. 5 -> "5 min", 90 -> "1 h 30 min".
+   * `emptyIfZero` controla qué devolver en 0 (o negativo): `'0 min'` por
+   * defecto, o `''` si se pasa `true` (usado donde un campo vacío se
+   * prefiere sobre "0 min" — ej. totales que aún no tienen datos).
+   * Única fuente de este formato — no duplicar esta lógica en otros
+   * archivos (antes existían 3 copias casi idénticas: aquí, en
+   * BlocksManager.formatTotalDuration y en Exporters.totalDurationLabel).
+   */
+  minutesToDurationLabel(totalMinutes, { emptyIfZero = false } = {}) {
+    if (totalMinutes <= 0) return emptyIfZero ? '' : '0 min';
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
     if (h === 0) return `${m} min`;
     if (m === 0) return `${h} h`;
     return `${h} h ${m} min`;
+  },
+
+  /** Duración "HH:MM" -> texto legible, ej. "0:05" -> "5 min". */
+  durationLabel(hhmm) {
+    return this.minutesToDurationLabel(this.timeToMinutes(hhmm));
   },
 
   /** ISO date -> "dd/mm/aaaa" para mostrar al usuario. */
@@ -71,6 +83,36 @@ const Utils = {
 
   clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+  },
+
+  /**
+   * Atrapa el foco de teclado dentro de `overlayEl` mientras está abierto:
+   * Tab/Shift+Tab ciclan solo entre los elementos focusables visibles de
+   * adentro, sin salir hacia la página de fondo. Devuelve una función
+   * `release()` que hay que llamar al cerrar el modal para quitar el
+   * listener. Uso típico:
+   *   const releaseTrap = Utils.trapFocus(overlayEl);
+   *   // ...al cerrar:
+   *   releaseTrap();
+   */
+  trapFocus(overlayEl) {
+    const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const onKeydown = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = [...overlayEl.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    overlayEl.addEventListener('keydown', onKeydown);
+    return () => overlayEl.removeEventListener('keydown', onKeydown);
   },
 };
 
