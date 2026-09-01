@@ -1198,6 +1198,31 @@ img { max-width: 100%; display: block; }
 .modal-wide > p { text-align: center; }
 .modal-icon-brand { background: rgba(35, 87, 156, 0.1); color: var(--color-navy-600); }
 
+/* ---------- Modal del tutorial en video ---------- */
+.modal-video {
+  max-width: 860px;
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+}
+.modal-video-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.modal-video-header h3 { margin-bottom: 0; }
+.modal-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.modal-video-wrap video { width: 100%; height: 100%; display: block; }
+
 /* ---------- Formulario de identidad (nombre + selector de grupo con buscador), pedido al enviar ---------- */
 .identity-form { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .identity-group-field { position: relative; }

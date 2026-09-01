@@ -25,6 +25,35 @@ const App = (() => {
       exampleToggle.setAttribute('aria-expanded', String(isOpen));
       exampleToggle.querySelector('span').textContent = isOpen ? 'Ocultar ejemplo' : 'Ver ejemplo';
     });
+
+    bindTutorialModal();
+  }
+
+  /** Modal con el video tutorial ("¿Cómo diligenciar el Minuto a Minuto?"), abierto desde el header. */
+  function bindTutorialModal() {
+    const openBtn = document.getElementById('btn-tutorial');
+    const closeBtn = document.getElementById('tutorial-modal-close');
+    const overlay = document.getElementById('tutorial-modal');
+    const video = document.getElementById('tutorial-video');
+    let releaseFocusTrap = null;
+
+    const open = () => {
+      overlay.hidden = false;
+      releaseFocusTrap = Utils.trapFocus(overlay);
+      closeBtn.focus();
+    };
+    const close = () => {
+      overlay.hidden = true;
+      video.pause();
+      if (releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+    };
+
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !overlay.hidden) close();
+    });
   }
 
   return { init };
